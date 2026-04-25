@@ -1,60 +1,91 @@
-import React, { useState } from 'react';
-import { 
-  View, 
-  StyleSheet, 
-  StatusBar, 
-  Image, 
-  ScrollView, 
-  KeyboardAvoidingView, 
+import React, { useEffect, useState } from 'react';
+import {
+  View,
+  StyleSheet,
+  StatusBar,
+  Image,
+  ScrollView,
+  KeyboardAvoidingView,
   Platform,
-  TouchableOpacity 
+  TouchableOpacity,
+  useColorScheme,
+  Keyboard
 } from 'react-native';
-import { TextInput, Button, Text } from 'react-native-paper';
+import { TextInput, Button, Text, HelperText, Snackbar } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../context/authContext';
-import { Ionicons } from '@expo/vector-icons';   // Asegúrate de tener expo-vector-icons instalado
+import { Ionicons } from '@expo/vector-icons';
 
 export default function ForgotPasswordScreen() {
   const navigation = useNavigation<any>();
-  
+  const scheme = useColorScheme();
+  const isDark = scheme === 'dark';
+
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
+  const [errors, setErrors] = useState({
+    email: '',
+  });
 
   const { forgotPassword, error, clearError } = useAuth();
 
+  // Validación en tiempo real
+  useEffect(() => {
+    const newErrors = { email: '' };
+
+    if (email.trim() && !email.includes('@uninorte.edu.co')) {
+      newErrors.email = "Ingresa un correo @uninorte.edu.co válido";
+    }
+
+    setErrors(newErrors);
+  }, [email]);
+
+  const isFormValid = !errors.email && email.trim();
+
   const handleReset = async () => {
-    if (!email) return;
+    Keyboard.dismiss();
+    if (!isFormValid) return;
+
     setLoading(true);
     clearError();
-    await forgotPassword(email);
-    setSent(true);
-    setLoading(false);
+
+    try {
+      await forgotPassword(email.trim());
+      setSent(true);
+    } catch (err: any) {
+      console.error("Error en recuperación de contraseña:", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
+      style={[styles.container, { backgroundColor: isDark ? '#170F37' : '#FAF8FF' }]}
     >
-      <StatusBar barStyle="dark-content" backgroundColor="#FAF8FF" />
+      <StatusBar
+        barStyle={isDark ? "light-content" : "dark-content"}
+        backgroundColor={isDark ? '#170F37' : '#FAF8FF'}
+      />
 
       {/* Barra superior con flecha */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: isDark ? '#2A1F4D' : '#F1EDF7' }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#170F37" />
+          <Ionicons name="arrow-back" size={24} color={isDark ? '#FFFFFF' : '#170F37'} />
         </TouchableOpacity>
       </View>
 
-      <ScrollView 
+      <ScrollView
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
       >
-        <Text variant="headlineMedium" style={styles.title}>
+        <Text variant="headlineMedium" style={[styles.title, { color: isDark ? '#FFFFFF' : '#170F37' }]}>
           ¿Olvidaste tu contraseña?
         </Text>
-        
-        <Text variant="bodyMedium" style={styles.subtitle}>
+
+        <Text variant="bodyMedium" style={[styles.subtitle, { color: isDark ? '#CCCCCC' : '#666' }]}>
           Ingresa tu correo institucional y te enviaremos un enlace para restablecerla.
         </Text>
 
@@ -64,27 +95,44 @@ export default function ForgotPasswordScreen() {
             value={email}
             onChangeText={setEmail}
             mode="outlined"
-            style={styles.input}
+            style={[styles.input, { backgroundColor: isDark ? '#2A1F4D' : '#FFFFFF' }]}
             keyboardType="email-address"
             autoCapitalize="none"
-            left={<TextInput.Icon icon="email" />}
+            error={!!errors.email}
+            theme={{ colors: { error: !isDark ? '#3d3d3d' : '#ffffff' } }}
+            left={<TextInput.Icon icon="email" color={isDark ? '#FFFFFF' : '#764AB5'} />}
           />
         </View>
 
-        {error && <Text style={styles.errorText}>{error}</Text>}
-        {sent && <Text style={styles.successText}>✅ Enlace enviado a tu correo</Text>}
+        {errors.email && <HelperText type="error" visible style={styles.helper}>{errors.email}</HelperText>}
+        {sent && (
+          <Text variant="bodyMedium" style={[styles.subtitle, { color: isDark ? '#CCCCCC' : '#666', marginBottom: 16 }]}>
+            Recibirás un enlace para restablecer tu contraseña. Si no lo ves, revisa tu carpeta de spam.
+          </Text>
+        )}
 
         <Button
           mode="contained"
           onPress={handleReset}
           loading={loading}
+          disabled={loading || !isFormValid}
           style={styles.resetButton}
-          buttonColor="#764AB5"
+          buttonColor={isDark ? "#8761BE" : "#764AB5"}
+          textColor={"#ffffff"}
           contentStyle={{ height: 54 }}
         >
           Enviar enlace de recuperación
         </Button>
       </ScrollView>
+
+      <Snackbar
+        visible={!!error}
+        onDismiss={clearError}
+        duration={4000}
+        action={{ label: "Cerrar", onPress: clearError }}
+      >
+        {error}
+      </Snackbar>
     </KeyboardAvoidingView>
   );
 }
@@ -92,10 +140,8 @@ export default function ForgotPasswordScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FAF8FF',
   },
   header: {
-    backgroundColor: '#F1EDF7',
     paddingTop: StatusBar.currentHeight || 40,
     paddingBottom: 8,
     paddingHorizontal: 20,
@@ -112,14 +158,12 @@ const styles = StyleSheet.create({
   },
   title: {
     textAlign: 'left',
-    color: '#170F37',
     fontWeight: '700',
     marginBottom: 12,
     marginTop: 20,
   },
   subtitle: {
     textAlign: 'left',
-    color: '#666',
     marginBottom: 20,
     lineHeight: 22,
   },
@@ -127,7 +171,6 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   input: {
-    backgroundColor: '#FFFFFF',
     height: 56,
   },
   resetButton: {
@@ -135,14 +178,14 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   errorText: {
-    color: '#6d37b8',
+    color: '#9877C8',
     textAlign: 'center',
     marginBottom: 16,
+    fontWeight: '500',
   },
-  successText: {
-    color: '#9e3fb6',
-    textAlign: 'center',
-    marginBottom: 20,
-    fontSize: 16,
+  helper: {
+    color: '#a382d6',
+    marginBottom: 6,
+    fontSize: 12,
   },
 });

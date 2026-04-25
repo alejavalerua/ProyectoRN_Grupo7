@@ -12,7 +12,7 @@ export type AuthContextType = {
   error: string | null;
   clearError: () => void;
   login: (email: string, password: string) => Promise<void>;
-  signup: (email: string, password: string) => Promise<void>;
+  signup: (email: string, password: string, name: string) => Promise<void>;
   logout: () => Promise<void>;
   forgotPassword: (email: string) => Promise<void>;
   validate: (email: string, validationCode: string) => Promise<string | null>;
@@ -56,11 +56,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const signup = async (email: string, password: string) => {
+  const signup = async (email: string, password: string, name: string) => {
     clearError();
     try {
       setLoading(true);
-      await authRepo.signup(email, password);
+      await authRepo.signup(email, password, name);
       setIsLoggedIn(true);
     } catch (err: any) {
       setError(err?.message ?? "Signup failed");

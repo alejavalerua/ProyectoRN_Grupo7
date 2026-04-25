@@ -43,22 +43,25 @@ export class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     }
   }
 
-  async signUp(email: string, password: string): Promise<void> {
+  async signUp(email: string, password: string, name?: string): Promise<void> {
     try {
-      const response = await fetch(`${this.baseUrl}/signup`, {
+      const response = await fetch(`${this.baseUrl}/signup-direct`, {
         method: "POST",
         headers: { "Content-Type": "application/json; charset=UTF-8" },
         body: JSON.stringify({
           email: email,
-          name: email.split("@")[0],
+          name: name?.trim() || email.split("@")[0],
           password: password,
         }),
       });
 
       if (response.status === 201) {
+        console.log(
+          "✅ Usuario creado y habilitado correctamente (signup-direct)",
+        );
         return this.login(email, password);
       } else {
-        const body = await response.json();
+        const body = await response.json().catch(() => ({}));
         throw new Error(`Signup error: ${(body.message || []).join(" ")}`);
       }
     } catch (e: any) {
@@ -140,8 +143,25 @@ export class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       throw e;
     }
   }
-  forgotPassword(email: string): Promise<void> {
-    throw new Error("Method not implemented.");
+  async forgotPassword(email: string): Promise<void> {
+    try {
+      const response = await fetch(`${this.baseUrl}/forgot-password`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json; charset=UTF-8" },
+        body: JSON.stringify({ email: email.trim() }),
+      });
+
+      if (response.status === 201 || response.status === 200) {
+        console.log("✅ Enlace de recuperación enviado");
+        return Promise.resolve();
+      } else {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body.message || `Error ${response.status}`);
+      }
+    } catch (e: any) {
+      console.error("Forgot password failed", e);
+      throw e;
+    }
   }
   resetPassword(
     email: string,

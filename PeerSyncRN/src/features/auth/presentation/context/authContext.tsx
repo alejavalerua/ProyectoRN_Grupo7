@@ -4,6 +4,7 @@ import { AuthUser } from '../../domain/entities/AuthUser';
 import { useDI } from '../../../../core/di/DIProvider';
 import { TOKENS } from '../../../../core/di/tokens';
 import { AuthRepository } from '../../domain/repositories/AuthRepository';
+import { showAlert } from '@/src/core/utils/alerts';
 
 interface AuthContextType {
   user: AuthUser | null;
@@ -37,13 +38,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     checkUser();
   }, []);
 
-  const showAlert = (title: string, message: string) => {
-    if (Platform.OS === 'web') {
-      window.alert(`${title}\n${message}`);
-    } else {
-      Alert.alert(title, message);
-    }
-  };
+  
 
   const login = async (email: string, pass: string) => {
     setIsLoading(true);

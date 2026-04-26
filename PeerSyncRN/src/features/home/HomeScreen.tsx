@@ -2,8 +2,10 @@ import React from 'react';
 import { FlatList, Text, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { Button } from 'react-native-paper'; // 1. Importamos el botón
 
-export default function HomeScreen() {
+// 2. Agregamos { navigation } a los parámetros para poder enrutar
+export default function HomeScreen({ navigation }: { navigation: any }) {
 
     const data = Array.from({ length: 20 }, (_, i) => ({
         id: i.toString(),
@@ -33,6 +35,23 @@ export default function HomeScreen() {
                         </View>
 
                         <Ionicons name="notifications-outline" size={28} color="black" />
+                    </View>
+
+                    {/* 3. Botones de prueba agregados aquí */}
+                    <View style={{ marginBottom: 20 }}>
+                        <Button 
+                            mode="contained" 
+                            onPress={() => navigation.navigate('StudentCourses')} 
+                            style={{ marginBottom: 10 }}
+                        >
+                            Ver Cursos (Estudiante)
+                        </Button>
+                        <Button 
+                            mode="contained" 
+                            onPress={() => navigation.navigate('TeacherCourses')}
+                        >
+                            Ver Cursos (Profesor)
+                        </Button>
                     </View>
 
                     {/* Lista */}

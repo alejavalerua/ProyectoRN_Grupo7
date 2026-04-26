@@ -4,7 +4,10 @@ import { useAuth } from '../features/auth/presentation/context/authContext';
 import LoginScreen from '../features/auth/presentation/screens/LoginScreen';
 import SignupScreen from '../features/auth/presentation/screens/SignupScreen';
 import ForgotPasswordScreen from '../features/auth/presentation/screens/ForgotPasswordScreen';
-import HomeScreen from '../features/home/HomeScreen'; // Asegúrate de que esta ruta sea correcta
+import HomeScreen from '../features/home/HomeScreen'; 
+
+import StudentCoursesScreen from '../features/courses/presentation/screens/StudentCoursesScreen';
+import TeacherCoursesScreen from '../features/courses/presentation/screens/TeacherCoursesScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -17,8 +20,12 @@ export default function AppNavigator() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       {user ? (
-        // Flujo autenticado
-        <Stack.Screen name="Home" component={HomeScreen} />
+        // Flujo autenticado (Rutas protegidas)
+        <>
+          <Stack.Screen name="Home" component={HomeScreen} />
+          <Stack.Screen name="StudentCourses" component={StudentCoursesScreen} />
+          <Stack.Screen name="TeacherCourses" component={TeacherCoursesScreen} />
+        </>
       ) : (
         // Flujo público
         <>

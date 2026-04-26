@@ -1,5 +1,3 @@
-// src/features/auth/data/repositories/AuthRepositoryImpl.ts
-
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AuthUser } from '../../domain/entities/AuthUser';
 import { AuthRepository } from '../../domain/repositories/AuthRepository';

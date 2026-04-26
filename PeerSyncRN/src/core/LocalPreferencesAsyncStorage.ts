@@ -28,8 +28,15 @@ export class LocalPreferencesAsyncStorage implements ILocalPreferences {
     }
     async retrieveData<T>(key: string): Promise<T | null> {
         try {
-            const jsonValue = await AsyncStorage.getItem(key);
-            return jsonValue ? JSON.parse(jsonValue) : null;
+            const value = await AsyncStorage.getItem(key);
+            if (!value) return null;
+            try {
+                // 1. Intentamos parsear como JSON (Ideal para objetos o arreglos como Course[])
+                return JSON.parse(value) as T;
+            } catch (parseError) {
+                // 2. Si falla el parseo, asumimos que es un string puro (como el token o email)
+                return value as unknown as T;
+            }
         } catch (e) {
             console.error(`Error retrieving data for ${key}`, e);
             return null;

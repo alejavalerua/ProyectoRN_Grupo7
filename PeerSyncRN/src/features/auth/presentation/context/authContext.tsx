@@ -1,126 +1,104 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
-
-import { useDI } from "@/src/core/di/DIProvider";
-import { TOKENS } from "@/src/core/di/tokens";
+import React, { createContext, useState, useEffect, useContext } from "react";
+import { Alert } from "react-native";
 import { AuthUser } from "../../domain/entities/AuthUser";
+import { useDI } from "@/src/core/di/DIProvider";
+import { TOKENS } from "../../../../core/di/tokens";
 import { AuthRepository } from "../../domain/repositories/AuthRepository";
 
-export type AuthContextType = {
-  loggedUser: AuthUser | null;
-  isLoggedIn: boolean;
-  loading: boolean;
-  error: string | null;
-  clearError: () => void;
-  login: (email: string, password: string) => Promise<void>;
-  signup: (email: string, password: string, name: string) => Promise<void>;
-  logout: () => Promise<void>;
-  forgotPassword: (email: string) => Promise<void>;
-  validate: (email: string, validationCode: string) => Promise<string | null>;
-  getLoggedUser: () => Promise<any | null>;
-};
+interface AuthContextType {
+  user: AuthUser | null;
+  isLoading: boolean;
+  login: (email: string, pass: string) => Promise<boolean>;
+  signUp: (email: string, pass: string, name: string) => Promise<boolean>;
+  signOut: () => Promise<void>;
+  sendPasswordReset: (email: string) => Promise<boolean>;
+}
 
-export const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext<AuthContextType>({} as AuthContextType);
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const di = useDI();
-
-  const authRepo = useMemo(() => di.resolve<AuthRepository>(TOKENS.AuthRepo), [di]);
-
-  const [loggedUser, setLoggedUser] = useState<AuthUser | null>(null);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const clearError = () => setError(null);
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
+  const container = useDI();
+  const authRepository = container.resolve<AuthRepository>(TOKENS.AuthRepo);
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    authRepo.getCurrentUser()
-      .then((user) => {
-        setLoggedUser(user);
-        setIsLoggedIn(!!user);
-      })
-      .catch(() => setIsLoggedIn(false))
-      .finally(() => setLoading(false));
+    checkLoginStatus();
   }, []);
 
-  const login = async (email: string, password: string) => {
-    clearError();
+  const checkLoginStatus = async () => {
+    setIsLoading(true);
     try {
-      setLoading(true);
-      await authRepo.login(email, password);
-      setIsLoggedIn(true);
-    } catch (err: any) {
-      setError(err?.message ?? "Login failed");
+      const savedUser = await authRepository.getSavedUser();
+      if (savedUser) setUser(savedUser);
+    } catch (e) {
+      console.error(e);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
-  const signup = async (email: string, password: string, name: string) => {
-    clearError();
+  const login = async (email: string, pass: string): Promise<boolean> => {
+    setIsLoading(true);
     try {
-      setLoading(true);
-      await authRepo.signup(email, password, name);
-      setIsLoggedIn(true);
-    } catch (err: any) {
-      setError(err?.message ?? "Signup failed");
+      const loggedUser = await authRepository.signIn(email, pass);
+      setUser(loggedUser);
+      return true; // Retorna true si fue exitoso para navegar en la UI
+    } catch (e: any) {
+      Alert.alert("Error", e.message.replace("Exception: ", ""));
+      return false;
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
-  const logout = async () => {
-    clearError();
+  const signUp = async (
+    email: string,
+    pass: string,
+    name: string,
+  ): Promise<boolean> => {
+    setIsLoading(true);
     try {
-      setLoading(true);
-      await authRepo.logout();
-      setIsLoggedIn(false);
-    } catch (err: any) {
-      setError(err?.message ?? "Logout failed");
+      const newUser = await authRepository.signUp(email, pass, name);
+      setUser(newUser);
+      return true;
+    } catch (e: any) {
+      Alert.alert("Error", e.message.replace("Exception: ", ""));
+      return false;
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
-  const forgotPassword = async (email: string) => {
-    clearError();
-    try {
-      setLoading(true);
-      await authRepo.forgotPassword(email);
-    } catch (err: any) {
-      setError(err?.message ?? "Failed to send password reset link");
-    } finally {
-      setLoading(false);
-    }
+  const signOut = async () => {
+    setIsLoading(true);
+    await authRepository.clearUser();
+    setUser(null);
+    setIsLoading(false);
   };
 
-  const validate = async (email: string, validationCode: string) => {
-    clearError();
+  const sendPasswordReset = async (email: string): Promise<boolean> => {
+    setIsLoading(true);
     try {
-      await authRepo.validate(email, validationCode);
-    } catch (err: any) {
-      return err?.message ?? "Validation failed";
+      await authRepository.sendPasswordResetEmail(email);
+      return true;
+    } catch (e: any) {
+      Alert.alert("Error", e.message.replace("Exception: ", ""));
+      return false;
+    } finally {
+      setIsLoading(false);
     }
-    return null;
-  }
-
-  const getLoggedUser = async () => {
-    try {
-      return await authRepo.getCurrentUser();
-    } catch (err) {
-      return null;
-    }
-  }
+  };
 
   return (
-    <AuthContext.Provider value={{ loggedUser, isLoggedIn, loading, error, clearError, login, signup, logout, forgotPassword, validate, getLoggedUser }}>
+    <AuthContext.Provider
+      value={{ user, isLoading, login, signUp, signOut, sendPasswordReset }}
+    >
       {children}
     </AuthContext.Provider>
   );
-}
+};
 
-export function useAuth() {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error("useAuth must be used inside AuthProvider");
-  return ctx;
-}
+export const useAuth = () => useContext(AuthContext);

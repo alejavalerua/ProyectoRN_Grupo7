@@ -1,223 +1,194 @@
-import React, { useRef, useState, useEffect } from 'react';
-import {
-  Keyboard,
-  TextInput as RNTextInput,
-  StyleSheet,
-  StatusBar,
-  Image,
-  ScrollView,
-  KeyboardAvoidingView,
-  Platform,
-  useColorScheme,
-  View,
-} from 'react-native';
-import { Button, HelperText, Snackbar, Text, TextInput, MD3LightTheme, MD3DarkTheme } from 'react-native-paper';
-import { useNavigation } from '@react-navigation/native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image } from 'react-native';
+import { Button, useTheme } from 'react-native-paper';
 import { useAuth } from '../context/authContext';
+import { AuthTextField } from '../components/AuthTextField';
+import { useNavigation } from '@react-navigation/native';
 
 export default function SignupScreen() {
+  const theme = useTheme();
+  const { signUp, isLoading } = useAuth();
   const navigation = useNavigation<any>();
-  const { signup, error, clearError } = useAuth();
-  const scheme = useColorScheme();
-  const isDark = scheme === 'dark';
 
+  // Estados locales para el formulario
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('ThePassword!1');
-  const [obscurePassword, setObscurePassword] = useState(true);
-  const [loading, setLoading] = useState(false);
+  const [password, setPassword] = useState('');
+  
+  const [nameError, setNameError] = useState<string | null>(null);
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
 
-  const [errors, setErrors] = useState({
-    name: '',
-    email: '',
-    password: '',
-  });
-
-  const passwordRef = useRef<RNTextInput>(null);
-
-  // Validación en tiempo real
-  useEffect(() => {
-    const newErrors = { name: '', email: '', password: '' };
-
-    if (name.trim() && name.trim().split(' ').length < 2) {
-      newErrors.name = "Por favor ingresa nombre y apellido";
-    }
-    if (email.trim() && !email.includes('@uninorte.edu.co')) {
-      newErrors.email = "Ingresa un correo @uninorte.edu.co válido";
-    }
-    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
-    if (password && !passwordRegex.test(password)) {
-      newErrors.password = "Mínimo 8 caracteres (mayúscula, minúscula, número y símbolo)";
+  // Validación de nombre y apellido (solo letras y espacios)
+  const validateName = (val: string) => {
+    setName(val);
+    if (!val.trim()) { setNameError(null); return; }
+    
+    const words = val.trim().split(/\s+/);
+    if (words.length < 2) {
+      setNameError('Debe incluir nombre y apellido');
+      return;
     }
 
-    setErrors(newErrors);
-  }, [name, email, password]);
-
-  const isFormValid = !errors.name && !errors.email && !errors.password &&
-    name.trim() && email.trim() && password.length >= 8;
-
-  const handleSignup = async () => {
-    Keyboard.dismiss();
-    if (!isFormValid) return;
-
-    setLoading(true);
-    clearError();
-
-    try {
-      await signup(email.trim(), password, name.trim());
-      navigation.navigate('Login');
-      console.log("Registro exitoso, redirigiendo a Login...");
-    } catch (err: any) {
-      console.error("Error en registro:", err);
-    } finally {
-      setLoading(false);
+    const hasInvalidChars = /[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/.test(val);
+    if (hasInvalidChars) {
+      setNameError('Solo se permiten letras y espacios');
+    } else {
+      setNameError(null);
     }
   };
 
+  // Validación de correo institucional
+  const validateEmail = (val: string) => {
+    setEmail(val);
+    if (!val) { setEmailError(null); return; }
+    if (!val.endsWith('@uninorte.edu.co')) {
+      setEmailError('El correo debe ser @uninorte.edu.co');
+    } else {
+      setEmailError(null);
+    }
+  };
+
+  // Validación de requisitos de contraseña
+  const validatePassword = (val: string) => {
+    setPassword(val);
+    if (!val) { setPasswordError(null); return; }
+    
+    let missing = [];
+    if (val.length < 8) missing.push("8 caracteres");
+    if (!/[A-Z]/.test(val)) missing.push("mayúscula");
+    if (!/[a-z]/.test(val)) missing.push("minúscula");
+    if (!/[0-9]/.test(val)) missing.push("número");
+    if (!/[!@#$_\-]/.test(val)) missing.push("símbolo (!@#_-$$)");
+
+    if (missing.length > 0) {
+      setPasswordError(`Falta: ${missing.join(', ')}`);
+    } else {
+      setPasswordError(null);
+    }
+  };
+
+  const canSubmit = !isLoading && 
+                    name.length > 0 && email.length > 0 && password.length > 0 && 
+                    !nameError && !emailError && !passwordError;
+
+  const handleSignUp = async () => {
+    await signUp(email.trim(), password.trim(), name.trim());
+  };
+
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={[styles.container, { backgroundColor: isDark ? '#170F37' : '#FAF8FF' }]}
+    <ScrollView 
+      contentContainerStyle={[styles.scrollContainer, { backgroundColor: theme.colors.background }]}
+      keyboardShouldPersistTaps="handled"
     >
-      <StatusBar
-        barStyle={isDark ? "light-content" : "dark-content"}
-        backgroundColor={isDark ? '#170F37' : '#FAF8FF'}
+      <Image 
+        source={require('../../../../../assets/images/logo.png')} 
+        style={styles.logo} 
+        resizeMode="contain" 
       />
+      
+      <Text style={[styles.title, { color: theme.colors.onBackground }]}>Crear cuenta</Text>
 
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
+      <View style={styles.row}>
+        <Text style={{ color: theme.dark ? '#B0B0B0' : '#8A8E97' }}>¿Ya tienes una cuenta? </Text>
+        <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+          <Text style={{ color: theme.colors.secondary, fontWeight: 'bold' }}>Inicia sesión</Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={[styles.formContainer, { backgroundColor: theme.colors.surface }]}>
+        <AuthTextField
+          label="Nombre completo"
+          icon="account-outline"
+          value={name}
+          onChangeText={validateName}
+          errorText={nameError}
+        />
+        
+        <View style={[styles.divider, { backgroundColor: theme.colors.outline }]} />
+
+        <AuthTextField
+          label="Correo electrónico"
+          icon="email-outline"
+          isEmail={true}
+          value={email}
+          onChangeText={validateEmail}
+          errorText={emailError}
+        />
+        
+        <View style={[styles.divider, { backgroundColor: theme.colors.outline }]} />
+
+        <AuthTextField
+          label="Contraseña"
+          icon="lock-outline"
+          isPassword={true}
+          value={password}
+          onChangeText={validatePassword}
+          errorText={passwordError}
+        />
+      </View>
+
+      <Button
+        mode="contained"
+        onPress={handleSignUp}
+        disabled={!canSubmit}
+        loading={isLoading}
+        style={styles.submitButton}
+        contentStyle={styles.submitButtonContent}
+        labelStyle={styles.submitButtonText}
       >
-        <View style={styles.logoContainer}>
-          <Image
-            source={{ uri: 'https://i.ibb.co/k6MQ9qRy/logo.png' }}
-            style={styles.logo}
-          />
-        </View>
-
-        <Text variant="headlineMedium" style={[styles.title, { color: isDark ? '#FFFFFF' : '#170F37' }]}>
-          Crear cuenta
-        </Text>
-
-        <Text variant="bodyMedium" style={[styles.subtitle, { color: isDark ? '#CCCCCC' : '#ADAFB5' }]}>
-          ¿Ya tienes una cuenta?{' '}
-          <Text
-            style={[styles.link, { color: !isDark ? '#9877C8' : '#af8ae6' }]}
-            onPress={() => navigation.navigate('Login')}
-          >
-            Inicia sesión
-          </Text>
-        </Text>
-
-        {/* Nombre Completo */}
-        <View style={styles.inputContainer}>
-          <TextInput
-            label="Nombre completo"
-            value={name}
-            onChangeText={setName}
-            mode="outlined"
-            style={[styles.input, { backgroundColor: isDark ? '#2A1F4D' : '#FFFFFF' }]}
-            error={!!errors.name}
-            theme={{ colors: { error: !isDark ? '#3d3d3d' : '#ffffff' } }}
-            left={<TextInput.Icon icon="account" color={isDark ? '#FFFFFF' : '#9877C8'} />}
-            returnKeyType="next"
-            onSubmitEditing={() => passwordRef.current?.focus()}
-          />
-          {errors.name && <HelperText type="error" visible style={styles.helper}>{errors.name}</HelperText>}
-
-          {/* Correo Institucional */}
-          <TextInput
-            label="Correo institucional"
-            value={email}
-            onChangeText={setEmail}
-            mode="outlined"
-            style={[styles.input, { backgroundColor: isDark ? '#2A1F4D' : '#FFFFFF' }]}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            error={!!errors.email}
-            theme={{ colors: { error: !isDark ? '#3d3d3d' : '#ffffff' } }}
-            left={<TextInput.Icon icon="email" color={isDark ? '#FFFFFF' : '#9877C8'} />}
-            returnKeyType="next"
-            onSubmitEditing={() => passwordRef.current?.focus()}
-          />
-          {errors.email && <HelperText type="error" visible style={styles.helper}>{errors.email}</HelperText>}
-
-          {/* Contraseña */}
-          <TextInput
-            ref={passwordRef}
-            label="Contraseña"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry={obscurePassword}
-            mode="outlined"
-            style={[styles.input, { backgroundColor: isDark ? '#2A1F4D' : '#FFFFFF' }]}
-            error={!!errors.password}
-            theme={{ colors: { error: !isDark ? '#3d3d3d' : '#ffffff' } }}
-            right={
-              <TextInput.Icon
-                icon={obscurePassword ? "eye-outline" : "eye-off-outline"}
-                onPress={() => setObscurePassword(!obscurePassword)}
-              />
-            }
-            left={<TextInput.Icon icon="lock" color={isDark ? '#FFFFFF' : '#9877C8'} />}
-            returnKeyType="done"
-            onSubmitEditing={handleSignup}
-          />
-          {errors.password && <HelperText type="error" visible style={styles.helper}>{errors.password}</HelperText>}
-        </View>
-
-        <Button
-          mode="contained"
-          onPress={handleSignup}
-          loading={loading}
-          disabled={loading || !isFormValid}
-          style={styles.signupButton}
-          buttonColor={isDark ? "#8761BE" : "#764AB5"}
-          textColor={"#ffffff"}
-          contentStyle={{ height: 54 }}
-        >
-          Registrarse
-        </Button>
-      </ScrollView>
-
-      <Snackbar
-        visible={!!error}
-        onDismiss={clearError}
-        duration={4000}
-        action={{ label: "Cerrar", onPress: clearError }}
-      >
-        {error}
-      </Snackbar>
-    </KeyboardAvoidingView>
+        Registrarse
+      </Button>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  scrollContent: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    paddingHorizontal: 24,
-    paddingVertical: 40,
+  scrollContainer: { 
+    flexGrow: 1, 
+    justifyContent: 'center', 
+    paddingHorizontal: 30,
+    paddingVertical: 40 
   },
-  logoContainer: { alignItems: 'center', marginBottom: 10 },
-  logo: { width: 250, height: 110, resizeMode: 'center' },
-  title: { textAlign: 'center', fontWeight: '700', marginBottom: 8 },
-  subtitle: { textAlign: 'center', marginBottom: 40 },
-  link: { fontWeight: '700' },
-  inputContainer: { marginBottom: 15 },
-  input: {
-    height: 56,
-    marginBottom: 4
+  logo: { 
+    height: 120, 
+    alignSelf: 'center', 
+    marginBottom: 20 
   },
-  helper: {
-    color: '#a382d6',
-    marginBottom: 6,
-    fontSize: 12,
+  title: { 
+    fontSize: 32, 
+    fontWeight: '800', // h1 ExtraBold
+    textAlign: 'center', 
+    marginBottom: 10 
   },
-  signupButton: {
-    marginTop: 10,
-    borderRadius: 12
+  row: { 
+    flexDirection: 'row', 
+    justifyContent: 'center', 
+    marginBottom: 40 
   },
+  formContainer: {
+    borderRadius: 10,
+    padding: 15,
+    marginBottom: 40,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  divider: {
+    height: 1,
+    marginVertical: 10,
+    opacity: 0.5,
+  },
+  submitButton: { 
+    borderRadius: 15 
+  },
+  submitButtonContent: { 
+    height: 55 
+  },
+  submitButtonText: { 
+    fontSize: 18, 
+    fontWeight: 'bold' 
+  }
 });

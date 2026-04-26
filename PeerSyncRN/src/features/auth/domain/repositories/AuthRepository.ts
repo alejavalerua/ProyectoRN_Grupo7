@@ -1,10 +1,11 @@
-import { AuthUser } from "../entities/AuthUser";
+import { AuthUser } from '../entities/AuthUser';
 
 export interface AuthRepository {
-  login(email: string, password: string): Promise<void>;
-  signup(email: string, password: string, name: string): Promise<void>;
-  logout(): Promise<void>;
-  getCurrentUser(): Promise<AuthUser | null>;
-  forgotPassword(email: string): Promise<void>;
-  validate(email: string, validationCode: string): Promise<void>;
+  signIn(email: string, password: string): Promise<AuthUser>;
+  signUp(email: string, password: string, role: string): Promise<AuthUser>;
+  getSavedUser(): Promise<AuthUser | null>; // En TS, un valor nullable se indica con | null
+  clearUser(): Promise<void>;
+  safeRequest<T>(request: () => Promise<T>): Promise<T>;
+  sendPasswordResetEmail(email: string): Promise<void>;
+  getCurrentUserEmail(): Promise<string | null>;
 }

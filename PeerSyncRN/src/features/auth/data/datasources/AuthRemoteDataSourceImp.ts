@@ -1,196 +1,153 @@
-import { ILocalPreferences } from "@/src/core/iLocalPreferences";
-import { LocalPreferencesAsyncStorage } from "@/src/core/LocalPreferencesAsyncStorage";
-import { AuthRemoteDataSource } from "./AuthRemoteDataSource";
+// src/features/auth/data/datasources/AuthRemoteDataSourceImp.ts
 
-export class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
-  private readonly projectId: string;
-  private readonly baseUrl: string;
+import { IAuthDataSource } from './iAuthDataSource';
 
-  private prefs: ILocalPreferences;
+const generateIntId = () => Date.now();
+// const ROBLE_PROJECT_ID = 'peer_sync_2e18809588';
+const ROBLE_PROJECT_ID = 'peersyncrn_aef82a178d';
 
-  constructor(projectId = process.env.EXPO_PUBLIC_ROBLE_PROJECT_ID) {
-    if (!projectId) {
-      throw new Error("Missing EXPO_PUBLIC_ROBLE_PROJECT_ID env var");
+export class AuthRemoteDataSourceImp implements IAuthDataSource {
+  private readonly authBaseUrl = `https://roble-api.openlab.uninorte.edu.co/auth/${ROBLE_PROJECT_ID}`;
+  private readonly dbBaseUrl = `https://roble-api.openlab.uninorte.edu.co/database/${ROBLE_PROJECT_ID}`;
+
+  async login(email: string, password: string): Promise<any> {
+    // 1. HACEMOS LOGIN EN AUTH
+    const authResponse = await fetch(`${this.authBaseUrl}/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+
+    if (!authResponse.ok) {
+      const errorText = await authResponse.text();
+      throw new Error(`Error en Login: ${errorText}`);
     }
-    this.projectId = projectId;
-    this.baseUrl = `https://roble-api.openlab.uninorte.edu.co/auth/${this.projectId}`;
-    this.prefs = LocalPreferencesAsyncStorage.getInstance();
-  }
 
-  async login(email: string, password: string): Promise<void> {
+    const authData = await authResponse.json();
+    const accessToken = authData.accessToken;
+
+    // 2. BUSCAMOS AL USUARIO EN LA TABLA "Users"
     try {
-      const response = await fetch(`${this.baseUrl}/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json; charset=UTF-8" },
-        body: JSON.stringify({ email, password }),
+      const dbResponse = await fetch(`${this.dbBaseUrl}/read?tableName=Users&email=${encodeURIComponent(email)}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
+        },
       });
 
-      if (response.status === 201) {
-        const data = await response.json();
-        const token = data["accessToken"];
-        const refreshToken = data["refreshToken"];
-        await this.prefs.storeData("token", token);
-        await this.prefs.storeData("refreshToken", refreshToken);
-        //console.log("Token:", token, "\nRefresh Token:", refreshToken);
-        return Promise.resolve();
+      if (dbResponse.ok) {
+        const dbData = await dbResponse.json();
+        const records = Array.isArray(dbData) ? dbData : (dbData.data ?? dbData.records ?? []);
+
+        if (records.length > 0) {
+          const userRecord = records[0];
+          const firstName = userRecord.first_name || '';
+          const lastName = userRecord.last_name || '';
+          authData.name = `${firstName} ${lastName}`.trim();
+          authData.role = userRecord.role || 'student';
+        } else {
+          authData.name = email.split('@')[0];
+          authData.role = 'student';
+        }
       } else {
-        const body = await response.json();
-        throw new Error(`Login error: ${body.message}`);
+        authData.name = email.split('@')[0];
+        authData.role = 'student';
       }
-    } catch (e: any) {
-      //console.error("Login failed", e);
-      throw e;
+    } catch (error) {
+      authData.name = email.split('@')[0];
+      authData.role = 'student';
+    }
+
+    return authData;
+  }
+
+  async signUp(email: string, password: string, name: string): Promise<any> {
+    // 1. CREAR CUENTA EN AUTH
+    const authResponse = await fetch(`${this.authBaseUrl}/signup-direct`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password, name }),
+    });
+
+    if (!authResponse.ok) {
+      const errorText = await authResponse.text();
+      throw new Error(`Error en registro: ${errorText}`);
+    }
+
+    // 2. INICIAR SESIÓN AUTOMÁTICAMENTE
+    const loginResponse = await fetch(`${this.authBaseUrl}/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+
+    if (!loginResponse.ok) {
+      const errorText = await loginResponse.text();
+      throw new Error(`Cuenta creada, pero falló el auto-login: ${errorText}`);
+    }
+
+    const authData = await loginResponse.json();
+    const accessToken = authData.accessToken;
+
+    // 3. PREPARAR DATOS
+    const nameParts = name.trim().split(' ');
+    const firstName = nameParts[0];
+    const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
+
+    // 4. INSERTAR EN LA BASE DE DATOS
+    const dbResponse = await fetch(`${this.dbBaseUrl}/insert`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({
+        tableName: 'Users',
+        records: [
+          {
+            user_id: generateIntId(),
+            email: email,
+            first_name: firstName,
+            last_name: lastName,
+            role: 'student',
+          },
+        ],
+      }),
+    });
+
+    if (dbResponse.ok) {
+      return authData;
+    } else {
+      const errorText = await dbResponse.text();
+      throw new Error(`Cuenta creada, pero falló al guardar en tabla Users: ${errorText}`);
     }
   }
 
-  async signUp(email: string, password: string, name?: string): Promise<void> {
-    try {
-      const response = await fetch(`${this.baseUrl}/signup-direct`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json; charset=UTF-8" },
-        body: JSON.stringify({
-          email: email,
-          name: name?.trim() || email.split("@")[0],
-          password: password,
-        }),
-      });
+  async refreshToken(refreshToken: string): Promise<any> {
+    const response = await fetch(`${this.authBaseUrl}/auth/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refreshToken }),
+    });
 
-      if (response.status === 201) {
-        console.log(
-          "✅ Usuario creado y habilitado correctamente (signup-direct)",
-        );
-        return this.login(email, password);
-      } else {
-        const body = await response.json().catch(() => ({}));
-        throw new Error(`Signup error: ${(body.message || []).join(" ")}`);
-      }
-    } catch (e: any) {
-      console.error("Signup failed", e);
-      throw e;
+    if (response.ok) {
+      return await response.json();
+    } else {
+      throw new Error("Sesión expirada");
     }
   }
 
-  async logOut(): Promise<void> {
-    try {
-      const token = await this.prefs.retrieveData<string>("token");
-      if (!token) throw new Error("No token found");
+  async sendPasswordResetEmail(email: string): Promise<void> {
+    const response = await fetch(`${this.authBaseUrl}/forgot-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
 
-      const response = await fetch(`${this.baseUrl}/logout`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (response.status === 201) {
-        await this.prefs.removeData("token");
-        await this.prefs.removeData("refreshToken");
-        console.log("Logged out successfully");
-        return Promise.resolve();
-      } else {
-        const body = await response.json();
-        throw new Error(`Logout error: ${body.message}`);
-      }
-    } catch (e: any) {
-      //console.error("Logout failed", e);
-      throw e;
-    }
-  }
-  async validate(email: string, validationCode: string): Promise<void> {
-    try {
-      const response = await fetch(`${this.baseUrl}/verify-email`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json; charset=UTF-8" },
-        body: JSON.stringify({ email, code: validationCode }),
-      });
-
-      if (response.status === 201) {
-        return Promise.resolve();
-      } else {
-        const body = await response.json();
-        throw new Error(`Validation error: ${body.message}`);
-      }
-    } catch (e: any) {
-      console.error("Validation failed", e);
-      throw e;
-    }
-  }
-
-  async refreshToken(): Promise<boolean> {
-    try {
-      const refreshToken =
-        await this.prefs.retrieveData<string>("refreshToken");
-      if (!refreshToken) {
-        console.warn("Refresh token failed", "No refresh token found");
-        return false;
-      }
-      const response = await fetch(`${this.baseUrl}/refresh-token`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ refreshToken }),
-      });
-
-      if (response.status === 201) {
-        const data = await response.json();
-        const newToken = data["accessToken"];
-        await this.prefs.storeData("token", newToken);
-        console.log("Token refreshed successfully");
-        return true;
-      } else {
-        const body = await response.json();
-        throw new Error(`Refresh token error: ${body.message}`);
-      }
-    } catch (e: any) {
-      console.error("Refresh token failed", e);
-      throw e;
-    }
-  }
-  async forgotPassword(email: string): Promise<void> {
-    try {
-      const response = await fetch(`${this.baseUrl}/forgot-password`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json; charset=UTF-8" },
-        body: JSON.stringify({ email: email.trim() }),
-      });
-
-      if (response.status === 201 || response.status === 200) {
-        console.log("✅ Enlace de recuperación enviado");
-        return Promise.resolve();
-      } else {
-        const body = await response.json().catch(() => ({}));
-        throw new Error(body.message || `Error ${response.status}`);
-      }
-    } catch (e: any) {
-      console.error("Forgot password failed", e);
-      throw e;
-    }
-  }
-  resetPassword(
-    email: string,
-    newPassword: string,
-    validationCode: string,
-  ): Promise<boolean> {
-    throw new Error("Method not implemented.");
-  }
-  async verifyToken(): Promise<boolean> {
-    try {
-      const token = await this.prefs.retrieveData<string>("token");
-      if (!token) return false;
-
-      const response = await fetch(`${this.baseUrl}/verify-token`, {
-        method: "GET",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (response.status === 200) {
-        console.log("Token is valid");
-        return true;
-      } else {
-        const body = await response.json();
-        console.error(`Token verification error: ${body.message}`);
-        return false;
-      }
-    } catch (e: any) {
-      console.error("Verify token failed", e);
-      return false;
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Error al solicitar cambio de contraseña: ${errorText}`);
     }
   }
 }

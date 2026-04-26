@@ -2,7 +2,7 @@ import React, { createContext, useContext, useMemo } from "react";
 
 import { TOKENS } from "./tokens";
 
-import { AuthRemoteDataSourceImpl } from "@/src/features/auth/data/datasources/AuthRemoteDataSourceImp";
+import { AuthRemoteDataSourceImp } from "@/src/features/auth/data/datasources/AuthRemoteDataSourceImp";
 import { AuthRepositoryImpl } from "@/src/features/auth/data/repositories/AuthRepositoryImpl";
 import { ProductRemoteDataSourceImp } from "@/src/features/products/data/datasources/ProductRemoteDataSourceImp";
 import { ProductRepositoryImpl } from "@/src/features/products/data/repositories/ProductRepositoryImpl";
@@ -14,7 +14,7 @@ export function DIProvider({ children }: { children: React.ReactNode }) {
     const container = useMemo(() => {
         const c = new Container();
 
-        const authDS = new AuthRemoteDataSourceImpl();
+        const authDS = new AuthRemoteDataSourceImp();
         const authRepo = new AuthRepositoryImpl(authDS);
 
         c.register(TOKENS.AuthRemoteDS, authDS)

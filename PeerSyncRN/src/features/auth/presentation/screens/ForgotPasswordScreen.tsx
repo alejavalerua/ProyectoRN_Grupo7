@@ -1,191 +1,151 @@
-import React, { useEffect, useState } from 'react';
-import {
-  View,
-  StyleSheet,
-  StatusBar,
-  Image,
-  ScrollView,
-  KeyboardAvoidingView,
-  Platform,
-  TouchableOpacity,
-  useColorScheme,
-  Keyboard
-} from 'react-native';
-import { TextInput, Button, Text, HelperText, Snackbar } from 'react-native-paper';
-import { useNavigation } from '@react-navigation/native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, Image, Alert } from 'react-native';
+import { Button, useTheme } from 'react-native-paper';
 import { useAuth } from '../context/authContext';
-import { Ionicons } from '@expo/vector-icons';
+import { AuthTextField } from '../components/AuthTextField';
+import { useNavigation } from '@react-navigation/native';
 
 export default function ForgotPasswordScreen() {
+  const theme = useTheme();
+  const { sendPasswordReset, isLoading } = useAuth();
   const navigation = useNavigation<any>();
-  const scheme = useColorScheme();
-  const isDark = scheme === 'dark';
 
   const [email, setEmail] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [sent, setSent] = useState(false);
-  const [errors, setErrors] = useState({
-    email: '',
-  });
+  const [emailError, setEmailError] = useState<string | null>(null);
 
-  const { forgotPassword, error, clearError } = useAuth();
-
-  // Validación en tiempo real
-  useEffect(() => {
-    const newErrors = { email: '' };
-
-    if (email.trim() && !email.includes('@uninorte.edu.co')) {
-      newErrors.email = "Ingresa un correo @uninorte.edu.co válido";
+  // Validación de correo institucional de Uninorte
+  const validateEmail = (val: string) => {
+    setEmail(val);
+    if (!val) {
+      setEmailError(null);
+      return;
     }
+    if (!val.endsWith('@uninorte.edu.co')) {
+      setEmailError('El correo debe ser @uninorte.edu.co');
+    } else {
+      setEmailError(null);
+    }
+  };
 
-    setErrors(newErrors);
-  }, [email]);
+  const handleSendReset = async () => {
+    if (!email.trim() || emailError) return;
 
-  const isFormValid = !errors.email && email.trim();
-
-  const handleReset = async () => {
-    Keyboard.dismiss();
-    if (!isFormValid) return;
-
-    setLoading(true);
-    clearError();
-
-    try {
-      await forgotPassword(email.trim());
-      setSent(true);
-    } catch (err: any) {
-      console.error("Error en recuperación de contraseña:", err);
-    } finally {
-      setLoading(false);
+    const success = await sendPasswordReset(email.trim());
+    if (success) {
+      Alert.alert(
+        "Correo enviado",
+        "Se ha enviado un enlace para restablecer tu contraseña a tu correo institucional.",
+        [{ text: "OK", onPress: () => navigation.goBack() }]
+      );
     }
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={[styles.container, { backgroundColor: isDark ? '#170F37' : '#FAF8FF' }]}
+    <ScrollView 
+      contentContainerStyle={[styles.scrollContainer, { backgroundColor: theme.colors.background }]}
+      keyboardShouldPersistTaps="handled"
     >
-      <StatusBar
-        barStyle={isDark ? "light-content" : "dark-content"}
-        backgroundColor={isDark ? '#170F37' : '#FAF8FF'}
+      <Image 
+        source={require('../../../../../assets/images/logo.png')} 
+        style={styles.logo} 
+        resizeMode="contain" 
       />
+      
+      <Text style={[styles.title, { color: theme.colors.onBackground }]}>
+        Recuperar contraseña
+      </Text>
+      
+      <Text style={[styles.subtitle, { color: theme.dark ? '#B9B4D0' : '#666' }]}>
+        Ingresa el correo electrónico asociado a tu cuenta y te enviaremos un enlace para restablecer tu contraseña.
+      </Text>
 
-      {/* Barra superior con flecha */}
-      <View style={[styles.header, { backgroundColor: isDark ? '#2A1F4D' : '#F1EDF7' }]}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={isDark ? '#FFFFFF' : '#170F37'} />
-        </TouchableOpacity>
+      <View style={[styles.formContainer, { backgroundColor: theme.colors.surface }]}>
+        <Text style={[styles.inputLabel, { color: theme.colors.primary }]}>
+          Correo electrónico
+        </Text>
+        
+        <AuthTextField
+          label="ejemplo@uninorte.edu.co"
+          icon="email-outline"
+          isEmail={true}
+          value={email}
+          onChangeText={validateEmail}
+          errorText={emailError}
+        />
       </View>
 
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
+      <Button
+        mode="contained"
+        onPress={handleSendReset}
+        loading={isLoading}
+        disabled={isLoading || email.length === 0 || !!emailError}
+        style={styles.submitButton}
+        contentStyle={styles.submitButtonContent}
+        labelStyle={styles.submitButtonText}
       >
-        <Text variant="headlineMedium" style={[styles.title, { color: isDark ? '#FFFFFF' : '#170F37' }]}>
-          ¿Olvidaste tu contraseña?
-        </Text>
-
-        <Text variant="bodyMedium" style={[styles.subtitle, { color: isDark ? '#CCCCCC' : '#666' }]}>
-          Ingresa tu correo institucional y te enviaremos un enlace para restablecerla.
-        </Text>
-
-        <View style={styles.inputContainer}>
-          <TextInput
-            label="Correo institucional"
-            value={email}
-            onChangeText={setEmail}
-            mode="outlined"
-            style={[styles.input, { backgroundColor: isDark ? '#2A1F4D' : '#FFFFFF' }]}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            error={!!errors.email}
-            theme={{ colors: { error: !isDark ? '#3d3d3d' : '#ffffff' } }}
-            left={<TextInput.Icon icon="email" color={isDark ? '#FFFFFF' : '#764AB5'} />}
-          />
-        </View>
-
-        {errors.email && <HelperText type="error" visible style={styles.helper}>{errors.email}</HelperText>}
-        {sent && (
-          <Text variant="bodyMedium" style={[styles.subtitle, { color: isDark ? '#CCCCCC' : '#666', marginBottom: 16 }]}>
-            Recibirás un enlace para restablecer tu contraseña. Si no lo ves, revisa tu carpeta de spam.
-          </Text>
-        )}
-
-        <Button
-          mode="contained"
-          onPress={handleReset}
-          loading={loading}
-          disabled={loading || !isFormValid}
-          style={styles.resetButton}
-          buttonColor={isDark ? "#8761BE" : "#764AB5"}
-          textColor={"#ffffff"}
-          contentStyle={{ height: 54 }}
-        >
-          Enviar enlace de recuperación
-        </Button>
-      </ScrollView>
-
-      <Snackbar
-        visible={!!error}
-        onDismiss={clearError}
-        duration={4000}
-        action={{ label: "Cerrar", onPress: clearError }}
+        Enviar enlace
+      </Button>
+      
+      <Button 
+        mode="text" 
+        onPress={() => navigation.goBack()} 
+        style={styles.backButton}
+        labelStyle={{ color: theme.colors.secondary }}
       >
-        {error}
-      </Snackbar>
-    </KeyboardAvoidingView>
+        Cancelar y volver
+      </Button>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
+  scrollContainer: { 
+    flexGrow: 1, 
+    paddingHorizontal: 24, 
+    paddingTop: 60,
+    paddingBottom: 20 
   },
-  header: {
-    paddingTop: StatusBar.currentHeight || 40,
-    paddingBottom: 8,
-    paddingHorizontal: 20,
+  logo: { 
+    height: 100, 
+    alignSelf: 'center', 
+    marginBottom: 30 
   },
-  backButton: {
-    padding: 8,
-    alignSelf: 'flex-start',
+  title: { 
+    fontSize: 28, 
+    fontWeight: '800', // Replicando el h1 de AppTheme
+    marginBottom: 12 
   },
-  scrollContent: {
-    flexGrow: 1,
-    paddingHorizontal: 24,
-    paddingTop: 30,
-    paddingBottom: 40,
+  subtitle: { 
+    fontSize: 14, 
+    marginBottom: 30, 
+    lineHeight: 20 
   },
-  title: {
-    textAlign: 'left',
-    fontWeight: '700',
-    marginBottom: 12,
-    marginTop: 20,
-  },
-  subtitle: {
-    textAlign: 'left',
-    marginBottom: 20,
-    lineHeight: 22,
-  },
-  inputContainer: {
-    marginBottom: 24,
-  },
-  input: {
-    height: 56,
-  },
-  resetButton: {
-    marginTop: 8,
+  formContainer: {
     borderRadius: 12,
+    padding: 20,
+    marginBottom: 30,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 3,
   },
-  errorText: {
-    color: '#9877C8',
-    textAlign: 'center',
-    marginBottom: 16,
-    fontWeight: '500',
+  inputLabel: { 
+    fontSize: 14, 
+    fontWeight: '700', 
+    marginBottom: 15 
   },
-  helper: {
-    color: '#a382d6',
-    marginBottom: 6,
-    fontSize: 12,
+  submitButton: { 
+    borderRadius: 12 
   },
+  submitButtonContent: { 
+    height: 55 
+  },
+  submitButtonText: { 
+    fontSize: 16, 
+    fontWeight: 'bold' 
+  },
+  backButton: { 
+    marginTop: 10 
+  }
 });

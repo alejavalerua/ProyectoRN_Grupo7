@@ -1,71 +1,74 @@
-import React, { createContext, useState, useEffect, useContext } from "react";
-import { Alert } from "react-native";
-import { AuthUser } from "../../domain/entities/AuthUser";
-import { useDI } from "@/src/core/di/DIProvider";
-import { TOKENS } from "../../../../core/di/tokens";
-import { AuthRepository } from "../../domain/repositories/AuthRepository";
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { Alert, Platform } from 'react-native';
+import { AuthUser } from '../../domain/entities/AuthUser';
+import { useDI } from '../../../../core/di/DIProvider';
+import { TOKENS } from '../../../../core/di/tokens';
+import { AuthRepository } from '../../domain/repositories/AuthRepository';
 
 interface AuthContextType {
   user: AuthUser | null;
   isLoading: boolean;
+  isCheckingSession: boolean; // <-- NUEVO ESTADO
   login: (email: string, pass: string) => Promise<boolean>;
   signUp: (email: string, pass: string, name: string) => Promise<boolean>;
   signOut: () => Promise<void>;
   sendPasswordReset: (email: string) => Promise<boolean>;
 }
 
-const AuthContext = createContext<AuthContextType>({} as AuthContextType);
+const AuthContext = createContext<AuthContextType | null>(null);
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
-  children,
-}) => {
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const container = useDI();
   const authRepository = container.resolve<AuthRepository>(TOKENS.AuthRepo);
+
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false); // <-- Ahora por defecto es false
+  const [isCheckingSession, setIsCheckingSession] = useState(true); // <-- Inicia en true
 
   useEffect(() => {
-    checkLoginStatus();
+    const checkUser = async () => {
+      try {
+        const savedUser = await authRepository.getSavedUser();
+        setUser(savedUser);
+      } finally {
+        setIsCheckingSession(false); // Termina la verificación inicial
+      }
+    };
+    checkUser();
   }, []);
 
-  const checkLoginStatus = async () => {
-    setIsLoading(true);
-    try {
-      const savedUser = await authRepository.getSavedUser();
-      if (savedUser) setUser(savedUser);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setIsLoading(false);
+  const showAlert = (title: string, message: string) => {
+    if (Platform.OS === 'web') {
+      window.alert(`${title}\n${message}`);
+    } else {
+      Alert.alert(title, message);
     }
   };
 
-  const login = async (email: string, pass: string): Promise<boolean> => {
+  const login = async (email: string, pass: string) => {
     setIsLoading(true);
     try {
       const loggedUser = await authRepository.signIn(email, pass);
       setUser(loggedUser);
-      return true; // Retorna true si fue exitoso para navegar en la UI
-    } catch (e: any) {
-      Alert.alert("Error", e.message.replace("Exception: ", ""));
+      return true;
+    } catch (error: any) {
+      console.error(error);
+      showAlert("Error de Inicio de Sesión", error.message || "Credenciales incorrectas");
       return false;
     } finally {
       setIsLoading(false);
     }
   };
 
-  const signUp = async (
-    email: string,
-    pass: string,
-    name: string,
-  ): Promise<boolean> => {
+  const signUp = async (email: string, pass: string, name: string) => {
     setIsLoading(true);
     try {
       const newUser = await authRepository.signUp(email, pass, name);
       setUser(newUser);
       return true;
-    } catch (e: any) {
-      Alert.alert("Error", e.message.replace("Exception: ", ""));
+    } catch (error: any) {
+      console.error(error);
+      showAlert("Error de Registro", error.message || "No se pudo crear la cuenta");
       return false;
     } finally {
       setIsLoading(false);
@@ -84,8 +87,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       await authRepository.sendPasswordResetEmail(email);
       return true;
-    } catch (e: any) {
-      Alert.alert("Error", e.message.replace("Exception: ", ""));
+    } catch (error: any) {
+      console.error(error);
+      showAlert("Error", error.message || "No se pudo enviar el correo de recuperación");
       return false;
     } finally {
       setIsLoading(false);
@@ -93,12 +97,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   return (
-    <AuthContext.Provider
-      value={{ user, isLoading, login, signUp, signOut, sendPasswordReset }}
-    >
+    <AuthContext.Provider value={{ user, isLoading, isCheckingSession, login, signUp, signOut, sendPasswordReset }}>
       {children}
     </AuthContext.Provider>
   );
 };
 
-export const useAuth = () => useContext(AuthContext);
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) throw new Error("useAuth must be used within AuthProvider");
+  return context;
+};

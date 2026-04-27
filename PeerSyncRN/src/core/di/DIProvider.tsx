@@ -2,8 +2,6 @@ import React, { createContext, useContext, useMemo } from "react";
 import { TOKENS } from "./tokens";
 import { AuthRemoteDataSourceImp } from "@/src/features/auth/data/datasources/AuthRemoteDataSourceImp";
 import { AuthRepositoryImpl } from "@/src/features/auth/data/repositories/AuthRepositoryImpl";
-import { ProductRemoteDataSourceImp } from "@/src/features/products/data/datasources/ProductRemoteDataSourceImp";
-import { ProductRepositoryImpl } from "@/src/features/products/data/repositories/ProductRepositoryImpl";
 import { Container } from "./container";
 
 import { LocalPreferencesAsyncStorage } from "@/src/core/LocalPreferencesAsyncStorage";
@@ -70,13 +68,6 @@ export function DIProvider({ children }: { children: React.ReactNode }) {
 
         c.register(TOKENS.GroupRemoteDS, groupDS)
          .register(TOKENS.GroupRepo, groupRepo);
-
-
-        const remoteDS = new ProductRemoteDataSourceImp(authDS);
-        const productRepo = new ProductRepositoryImpl(remoteDS);
-
-        c.register(TOKENS.ProductRemoteDS, remoteDS)
-            .register(TOKENS.ProductRepo, productRepo);
 
 
 

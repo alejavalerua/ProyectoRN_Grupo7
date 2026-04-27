@@ -36,7 +36,7 @@ export class CategoryRepositoryImpl implements ICategoryRepository {
     const cacheTime = await this.localPreferences.retrieveData<number>(cacheTimeKey);
 
     const now = Date.now();
-    const cacheDuration = 5 * 60 * 1000; // ⏱ 5 minutos en milisegundos
+    const cacheDuration = 1 * 60 * 1000; // ⏱ 1 minuto en milisegundos
 
     // 🔥 SI HAY CACHE Y MARCA DE TIEMPO
     if (cachedCategories && cacheTime) {

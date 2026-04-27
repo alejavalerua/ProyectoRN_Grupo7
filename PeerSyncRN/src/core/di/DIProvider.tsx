@@ -13,6 +13,11 @@ import { CourseRepositoryImpl } from "@/src/features/courses/data/repositories/C
 import { CategoryRemoteSourceImpl } from "@/src/features/categories/data/datasources/CategoryRemoteSourceImpl";
 import { CategoryRepositoryImpl } from "@/src/features/categories/data/repositories/CategoryRepositoryImpl";
 
+import { EvaluationRemoteSourceImpl } from "@/src/features/evaluations/data/datasources/EvaluationRemoteSourceImpl";
+import { EvaluationRepositoryImpl } from "@/src/features/evaluations/data/repositories/EvaluationRepositoryImpl";
+import { EvaluationAnalyticsRemoteSourceImpl } from "@/src/features/evaluations/data/datasources/EvaluationAnalyticsRemoteSourceImpl";
+import { EvaluationAnalyticsRepositoryImpl } from "@/src/features/evaluations/data/repositories/EvaluationAnalyticsRepositoryImpl";
+
 const DIContext = createContext<Container | null>(null);
 
 export function DIProvider({ children }: { children: React.ReactNode }) {
@@ -44,6 +49,18 @@ export function DIProvider({ children }: { children: React.ReactNode }) {
 
         c.register(TOKENS.CategoryRemoteDS, categoryDS)
          .register(TOKENS.CategoryRepo, categoryRepo);
+
+         // 5. Dependencias de Evaluaciones
+        const evalDS = new EvaluationRemoteSourceImpl(localPrefs);
+        const evalRepo = new EvaluationRepositoryImpl(evalDS, localPrefs);
+
+        const evalAnalyticsDS = new EvaluationAnalyticsRemoteSourceImpl(localPrefs);
+        const evalAnalyticsRepo = new EvaluationAnalyticsRepositoryImpl(evalAnalyticsDS);
+
+        c.register(TOKENS.EvaluationRemoteDS, evalDS)
+         .register(TOKENS.EvaluationRepo, evalRepo)
+         .register(TOKENS.EvaluationAnalyticsRemoteDS, evalAnalyticsDS)
+         .register(TOKENS.EvaluationAnalyticsRepo, evalAnalyticsRepo);
 
 
         const remoteDS = new ProductRemoteDataSourceImp(authDS);

@@ -12,7 +12,8 @@ import StudentCourseDetailScreen from '../features/categories/presentation/scree
 import TeacherCourseDetailScreen from '../features/categories/presentation/screens/TeacherCourseDetailScreen';
 import StudentEvaluationScreen from '../features/evaluations/presentation/screens/StudentEvaluationScreen';
 import StudentActivitiesScreen from '../features/evaluations/presentation/screens/StudentActivitiesScreen';
-
+import TeacherCategoryDetailScreen from '../features/categories/presentation/screens/TeacherCategoryDetailScreen';
+import TeacherReportScreen from '../features/evaluations/presentation/screens/TeacherReportScreen';
 const Stack = createNativeStackNavigator();
 
 export default function AppNavigator() {
@@ -33,6 +34,8 @@ export default function AppNavigator() {
           <Stack.Screen name="TeacherCourseDetail" component={TeacherCourseDetailScreen} />
           <Stack.Screen name="StudentActivities" component={StudentActivitiesScreen} />
           <Stack.Screen name="StudentEvaluation" component={StudentEvaluationScreen} />
+          <Stack.Screen name="TeacherCategoryDetail" component={TeacherCategoryDetailScreen} />
+          <Stack.Screen name="TeacherReport" component={TeacherReportScreen} />
 
         </>
       ) : (

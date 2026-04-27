@@ -14,6 +14,7 @@ import AppNavigator from "./src/navigation/AppNavigator";
 
 import { darkTheme, lightTheme } from "./src/theme/theme";
 import { CourseProvider } from "./src/features/courses/presentation/context/CourseContext";
+import { CategoryProvider } from "./src/features/categories/presentation/context/CategoryContext";
 
 export default function App() {
   const scheme = useColorScheme();
@@ -36,11 +37,13 @@ export default function App() {
     <DIProvider>
       <AuthProvider>
         <CourseProvider>
-          <PaperProvider theme={paperTheme}>
-            <NavigationContainer theme={navigationTheme}>
-              <AppNavigator />
-            </NavigationContainer>
-          </PaperProvider>
+          <CategoryProvider>
+            <PaperProvider theme={paperTheme}>
+              <NavigationContainer theme={navigationTheme}>
+                <AppNavigator />
+              </NavigationContainer>
+            </PaperProvider>
+          </CategoryProvider>
         </CourseProvider>
       </AuthProvider>
     </DIProvider>

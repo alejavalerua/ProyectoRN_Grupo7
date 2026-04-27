@@ -10,6 +10,9 @@ import { LocalPreferencesAsyncStorage } from "@/src/core/LocalPreferencesAsyncSt
 import { CourseRemoteSourceImpl } from "@/src/features/courses/data/datasources/CourseRemoteSourceImpl";
 import { CourseRepositoryImpl } from "@/src/features/courses/data/repositories/CourseRepositoryImpl";
 
+import { CategoryRemoteSourceImpl } from "@/src/features/categories/data/datasources/CategoryRemoteSourceImpl";
+import { CategoryRepositoryImpl } from "@/src/features/categories/data/repositories/CategoryRepositoryImpl";
+
 const DIContext = createContext<Container | null>(null);
 
 export function DIProvider({ children }: { children: React.ReactNode }) {
@@ -28,12 +31,19 @@ export function DIProvider({ children }: { children: React.ReactNode }) {
         c.register(TOKENS.AuthRemoteDS, authDS)
          .register(TOKENS.AuthRepo, authRepo);
 
-        // 3. Dependencias de Cursos (Inyectando authRepo y localPrefs)
+        // 3. Dependencias de Cursos
         const courseDS = new CourseRemoteSourceImpl(localPrefs);
         const courseRepo = new CourseRepositoryImpl(courseDS, authRepo, localPrefs);
 
         c.register(TOKENS.CourseRemoteDS, courseDS)
          .register(TOKENS.CourseRepo, courseRepo);
+
+        // 👇 4. Dependencias de Categorías
+        const categoryDS = new CategoryRemoteSourceImpl(localPrefs);
+        const categoryRepo = new CategoryRepositoryImpl(categoryDS, authRepo, localPrefs);
+
+        c.register(TOKENS.CategoryRemoteDS, categoryDS)
+         .register(TOKENS.CategoryRepo, categoryRepo);
 
 
         const remoteDS = new ProductRemoteDataSourceImp(authDS);

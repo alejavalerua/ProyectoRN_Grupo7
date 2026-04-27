@@ -1,14 +1,20 @@
-import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, ActivityIndicator, Alert } from 'react-native';
-import { Text, FAB, useTheme, IconButton, Badge } from 'react-native-paper';
-import { useNavigation } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import React, { useState } from "react";
+import {
+  View,
+  StyleSheet,
+  ScrollView,
+  ActivityIndicator,
+  Alert,
+} from "react-native";
+import { Text, FAB, useTheme, IconButton, Badge } from "react-native-paper";
+import { useNavigation } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 // Contextos y Componentes
-import { useCourse } from '../context/CourseContext';
-import { CourseCard, CourseProjectItem } from '../components/CourseCard';
-import { CreateCourseModal } from '../components/CreateCourseModal';
-import { showAlert } from '@/src/core/utils/alerts';
+import { useCourse } from "../context/CourseContext";
+import { CourseCard, CourseProjectItem } from "../components/CourseCard";
+import { CreateCourseModal } from "../components/CreateCourseModal";
+import { showAlert } from "@/src/core/utils/alerts";
 
 // Tipado estricto para la navegación
 type RootStackParamList = {
@@ -17,12 +23,15 @@ type RootStackParamList = {
   TeacherCourseDetail: { courseId: string; courseTitle: string };
 };
 
-type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'TeacherCourses'>;
+type NavigationProp = NativeStackNavigationProp<
+  RootStackParamList,
+  "TeacherCourses"
+>;
 
 export default function TeacherCoursesScreen() {
   const theme = useTheme();
   const navigation = useNavigation<NavigationProp>();
-  
+
   // Consumimos el estado global desde nuestro Contexto
   const { courses, isLoading, createCourse } = useCourse();
 
@@ -31,7 +40,7 @@ export default function TeacherCoursesScreen() {
   const [isProcessingCsv, setIsProcessingCsv] = useState(false);
 
   // Mock temporal para notificaciones
-  const unreadNotifications = 3; 
+  const unreadNotifications = 3;
 
   const handleCreateCourse = async (name: string, fileUri?: string) => {
     setModalVisible(false); // Cerramos el modal
@@ -48,19 +57,26 @@ export default function TeacherCoursesScreen() {
         }
       }
     } catch (error: any) {
-      showAlert("Error de Registro", error.message || "Ocurrió un error al crear el curso");
+      showAlert(
+        "Error de Registro",
+        error.message || "Ocurrió un error al crear el curso",
+      );
     } finally {
       setIsProcessingCsv(false);
     }
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <View
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
+    >
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        
         {/* HEADER CON NOTIFICACIONES */}
         <View style={styles.header}>
-          <Text variant="titleLarge" style={{ color: theme.colors.primary, fontWeight: 'bold' }}>
+          <Text
+            variant="titleLarge"
+            style={{ color: theme.colors.primary, fontWeight: "bold" }}
+          >
             Cursos
           </Text>
           <View>
@@ -68,7 +84,7 @@ export default function TeacherCoursesScreen() {
               icon="bell-outline"
               iconColor={theme.colors.primary}
               size={28}
-              onPress={() => navigation.navigate('Notifications')}
+              onPress={() => navigation.navigate("Notifications")}
             />
             {unreadNotifications > 0 && (
               <Badge style={styles.badge} size={18}>
@@ -83,14 +99,23 @@ export default function TeacherCoursesScreen() {
           <View style={styles.centerContent}>
             <ActivityIndicator size="large" color={theme.colors.primary} />
             {isProcessingCsv && (
-              <Text variant="bodyMedium" style={{ marginTop: 10, color: theme.colors.primary }}>
+              <Text
+                variant="bodyMedium"
+                style={{ marginTop: 10, color: theme.colors.primary }}
+              >
                 Configurando curso y procesando estudiantes...
               </Text>
             )}
           </View>
         ) : courses.length === 0 ? (
           <View style={styles.centerContent}>
-            <Text variant="bodyLarge" style={{ color: theme.colors.onSurfaceVariant, textAlign: 'center' }}>
+            <Text
+              variant="bodyLarge"
+              style={{
+                color: theme.colors.onSurfaceVariant,
+                textAlign: "center",
+              }}
+            >
               No has creado ningún curso
             </Text>
           </View>
@@ -99,18 +124,18 @@ export default function TeacherCoursesScreen() {
             {courses.map((course) => {
               //TODO: Estos datos vendrán del CategoryContext y EvaluationContext en el futuro
               const progressText = "15 estudiantes inscritos"; // MOCK
-              
+
               const projects: CourseProjectItem[] = [
                 {
                   title: "Proyecto Final", // MOCK
                   subtitle: "10/15 Entregas calificadas", // MOCK
                   onTap: (courseTitle, projectTitle) => {
-                    navigation.navigate('TeacherCourseDetail', {
+                    navigation.navigate("TeacherCourseDetail", {
                       courseId: course.id,
                       courseTitle: course.name,
                     });
                   },
-                }
+                },
               ];
 
               return (
@@ -121,7 +146,7 @@ export default function TeacherCoursesScreen() {
                     leadingIcon="school"
                     projects={projects}
                     onTap={() => {
-                      navigation.navigate('TeacherCourseDetail', {
+                      navigation.navigate("TeacherCourseDetail", {
                         courseId: course.id,
                         courseTitle: course.name,
                       });
@@ -162,29 +187,29 @@ const styles = StyleSheet.create({
     paddingBottom: 100, // Espacio para que el FAB no tape contenido
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 20,
     paddingHorizontal: 4,
   },
   badge: {
-    position: 'absolute',
+    position: "absolute",
     top: 4,
     right: 4,
   },
   centerContent: {
     marginTop: 40,
-    alignItems: 'center',
+    alignItems: "center",
   },
   coursesList: {
-    width: '100%',
+    width: "100%",
   },
   cardWrapper: {
     marginBottom: 16,
   },
   fab: {
-    position: 'absolute',
+    position: "absolute",
     margin: 20,
     right: 0,
     bottom: 0,

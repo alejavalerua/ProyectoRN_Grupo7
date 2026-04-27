@@ -8,6 +8,8 @@ import HomeScreen from '../features/home/HomeScreen';
 
 import StudentCoursesScreen from '../features/courses/presentation/screens/StudentCoursesScreen';
 import TeacherCoursesScreen from '../features/courses/presentation/screens/TeacherCoursesScreen';
+import StudentCourseDetailScreen from '../features/categories/presentation/screens/StudentCourseDetailScreen';
+import TeacherCourseDetailScreen from '../features/categories/presentation/screens/TeacherCourseDetailScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -25,6 +27,9 @@ export default function AppNavigator() {
           <Stack.Screen name="Home" component={HomeScreen} />
           <Stack.Screen name="StudentCourses" component={StudentCoursesScreen} />
           <Stack.Screen name="TeacherCourses" component={TeacherCoursesScreen} />
+          <Stack.Screen name="StudentCourseDetail" component={StudentCourseDetailScreen} />
+          <Stack.Screen name="TeacherCourseDetail" component={TeacherCourseDetailScreen} />
+          
         </>
       ) : (
         // Flujo público

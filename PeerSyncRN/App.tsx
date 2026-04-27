@@ -18,6 +18,7 @@ import { TeacherReportProvider } from './src/features/evaluations/presentation/c
 import AppNavigator from './src/navigation/AppNavigator';
 import { darkTheme, lightTheme } from './src/theme/theme';
 import { AuthProvider } from './src/features/auth/presentation/context/authContext';
+import { GroupProvider } from './src/features/groups/presentation/context/GroupContext';
 
 export default function App() {
   const scheme = useColorScheme();
@@ -39,6 +40,9 @@ export default function App() {
   return (
     <DIProvider>
       <AuthProvider>
+        <GroupProvider>
+
+        
         <CourseProvider>
           <CategoryProvider>
             <EvaluationProvider>
@@ -58,6 +62,7 @@ export default function App() {
             </EvaluationProvider>
           </CategoryProvider>
         </CourseProvider>
+        </GroupProvider>
       </AuthProvider>
     </DIProvider>
   );

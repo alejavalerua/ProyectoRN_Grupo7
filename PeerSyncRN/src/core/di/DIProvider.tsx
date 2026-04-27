@@ -17,6 +17,8 @@ import { EvaluationRemoteSourceImpl } from "@/src/features/evaluations/data/data
 import { EvaluationRepositoryImpl } from "@/src/features/evaluations/data/repositories/EvaluationRepositoryImpl";
 import { EvaluationAnalyticsRemoteSourceImpl } from "@/src/features/evaluations/data/datasources/EvaluationAnalyticsRemoteSourceImpl";
 import { EvaluationAnalyticsRepositoryImpl } from "@/src/features/evaluations/data/repositories/EvaluationAnalyticsRepositoryImpl";
+import { GroupRepositoryImpl } from "@/src/features/groups/data/repositories/GroupRepositoryImpl";
+import { GroupRemoteDataSourceImpl } from "@/src/features/groups/data/datasources/GroupRemoteDataSourceImpl";
 
 const DIContext = createContext<Container | null>(null);
 
@@ -61,6 +63,13 @@ export function DIProvider({ children }: { children: React.ReactNode }) {
          .register(TOKENS.EvaluationRepo, evalRepo)
          .register(TOKENS.EvaluationAnalyticsRemoteDS, evalAnalyticsDS)
          .register(TOKENS.EvaluationAnalyticsRepo, evalAnalyticsRepo);
+
+         // Dependencias de Grupos
+        const groupDS = new GroupRemoteDataSourceImpl(localPrefs);
+        const groupRepo = new GroupRepositoryImpl(groupDS);
+
+        c.register(TOKENS.GroupRemoteDS, groupDS)
+         .register(TOKENS.GroupRepo, groupRepo);
 
 
         const remoteDS = new ProductRemoteDataSourceImp(authDS);

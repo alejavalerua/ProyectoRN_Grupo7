@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { Modal, Portal, Text, Button, useTheme, Icon } from 'react-native-paper';
+import * as DocumentPicker from 'expo-document-picker';
 
 interface CreateCategoryModalProps {
   visible: boolean;
   onDismiss: () => void;
-  onCreate: (fileUri?: string) => void;
+  // Ahora pasamos el archivo seleccionado de vuelta a la pantalla
+  onCreate: (file?: DocumentPicker.DocumentPickerAsset) => void;
 }
 
 export const CreateCategoryModal: React.FC<CreateCategoryModalProps> = ({
@@ -14,23 +16,39 @@ export const CreateCategoryModal: React.FC<CreateCategoryModalProps> = ({
   onCreate,
 }) => {
   const theme = useTheme();
-  const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<DocumentPicker.DocumentPickerAsset | null>(null);
 
-  const handlePickFile = () => {
-    // Aquí integrarías expo-document-picker
-    setSelectedFileName('grupos_clase_a.csv');
+  const handlePickFile = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        // Limitamos a archivos CSV
+        type: ['text/csv', 'text/comma-separated-values', 'application/csv'],
+        copyToCacheDirectory: true,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        setSelectedFile(result.assets[0]);
+      }
+    } catch (error) {
+      console.error("Error al seleccionar archivo:", error);
+    }
   };
 
   const handleCreate = () => {
-    onCreate(selectedFileName || undefined);
-    setSelectedFileName(null);
+    onCreate(selectedFile || undefined);
+    setSelectedFile(null); // Limpiamos para la próxima vez
+  };
+
+  const handleDismiss = () => {
+    setSelectedFile(null); // Limpiamos si el usuario cancela
+    onDismiss();
   };
 
   return (
     <Portal>
       <Modal 
         visible={visible} 
-        onDismiss={onDismiss} 
+        onDismiss={handleDismiss} 
         contentContainerStyle={[styles.modal, { backgroundColor: theme.colors.surface }]}
       >
         <Text variant="titleLarge" style={styles.title}>Crear Categoría Grupo</Text>
@@ -43,15 +61,25 @@ export const CreateCategoryModal: React.FC<CreateCategoryModalProps> = ({
           style={[styles.uploadArea, { borderColor: theme.colors.primary, backgroundColor: theme.colors.primaryContainer }]} 
           onPress={handlePickFile}
         >
-          <Icon source="plus" size={24} color={theme.colors.primary} />
-          <Text style={{ color: theme.colors.primary, fontWeight: 'bold', marginLeft: 8 }}>
-            {selectedFileName ?? 'Importar CSV'}
+          <Icon source="file-document-outline" size={24} color={theme.colors.primary} />
+          <Text 
+            style={{ color: theme.colors.primary, fontWeight: 'bold', marginLeft: 8, flex: 1 }} 
+            numberOfLines={1}
+          >
+            {selectedFile ? selectedFile.name : 'Importar CSV'}
           </Text>
         </TouchableOpacity>
 
         <View style={styles.buttonRow}>
-          <Button mode="outlined" onPress={onDismiss} style={styles.button}>Cancelar</Button>
-          <Button mode="contained" onPress={handleCreate} style={styles.button}>Crear</Button>
+          <Button mode="outlined" onPress={handleDismiss} style={styles.button}>Cancelar</Button>
+          <Button 
+            mode="contained" 
+            onPress={handleCreate} 
+            style={styles.button} 
+            disabled={!selectedFile} // Deshabilitado hasta que seleccione un archivo
+          >
+            Crear
+          </Button>
         </View>
       </Modal>
     </Portal>
@@ -71,7 +99,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 24,
+    paddingHorizontal: 10,
   },
   buttonRow: { flexDirection: 'row', justifyContent: 'space-between' },
   button: { flex: 1, marginHorizontal: 4 },
-});
+}); 

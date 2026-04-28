@@ -17,6 +17,7 @@ import { AnalyticsCard } from '../evaluations/presentation/components/AnalyticsC
 import { CriteriaBarChart } from '../evaluations/presentation/components/CriteriaBarChart';
 
 import { StudentTrendChart } from '../evaluations/presentation/components/StudentTrendChart'; 
+import { useNotification } from '../notifications/presentation/context/NotificationContext';
 
 // --- Subcomponente para las métricas del Footer (Equivalente al MetricBox de Flutter) ---
 const MetricBox = ({ title, value }: { title: string; value: string }) => {
@@ -121,7 +122,7 @@ export default function HomeScreen() {
   const recentCourses = [...courses].reverse().slice(0, 2);
   const isAnyLoading = isLoadingCourses || isLoadingHomeActivities || isCascadeLoading || isLoadingTeacherHomeAnalytics || isLoadingStudentHomeAnalytics;
   const hasContent = recentCourses.length > 0 || homeActivities.length > 0;
-  const unreadNotifications = 0; // Conéctalo a tu NotificationController en el futuro
+  const { unreadCount } = useNotification();
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
@@ -145,11 +146,11 @@ export default function HomeScreen() {
               icon="bell-outline" 
               iconColor={theme.colors.onBackground} 
               size={28} 
-              onPress={() => { /* Navegar a notificaciones */ }} 
+              onPress={() => navigation.navigate('Notifications')}
             />
-            {unreadNotifications > 0 && (
+            {unreadCount > 0 && (
               <Badge style={[styles.badge, { backgroundColor: theme.colors.error }]}>
-                {unreadNotifications}
+                {unreadCount}
               </Badge>
             )}
           </View>

@@ -17,6 +17,8 @@ import { EvaluationAnalyticsRemoteSourceImpl } from "@/src/features/evaluations/
 import { EvaluationAnalyticsRepositoryImpl } from "@/src/features/evaluations/data/repositories/EvaluationAnalyticsRepositoryImpl";
 import { GroupRepositoryImpl } from "@/src/features/groups/data/repositories/GroupRepositoryImpl";
 import { GroupRemoteDataSourceImpl } from "@/src/features/groups/data/datasources/GroupRemoteDataSourceImpl";
+import { NotificationRepositoryImpl } from "@/src/features/notifications/data/repositories/NotificationRepositoryImpl";
+import { NotificationRemoteSourceImpl } from "@/src/features/notifications/data/datasources/NotificationRemoteSourceImpl";
 
 const DIContext = createContext<Container | null>(null);
 
@@ -68,6 +70,12 @@ export function DIProvider({ children }: { children: React.ReactNode }) {
 
         c.register(TOKENS.GroupRemoteDS, groupDS)
          .register(TOKENS.GroupRepo, groupRepo);
+
+         const notifDS = new NotificationRemoteSourceImpl(localPrefs);
+        const notifRepo = new NotificationRepositoryImpl(notifDS);
+
+            c.register(TOKENS.NotificationRemoteDS, notifDS)
+            .register(TOKENS.NotificationRepo, notifRepo);
 
 
 

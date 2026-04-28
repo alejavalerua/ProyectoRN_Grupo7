@@ -80,7 +80,7 @@ export default function ProfileScreen() {
             title="Notificaciones"
             left={props => <List.Icon {...props} icon="bell-outline" color={theme.colors.primary} />}
             right={props => <List.Icon {...props} icon="chevron-right" />}
-            onPress={() => showAlert('Notificaciones', 'Próximamente...')}
+            onPress={() => navigation.navigate('Notifications')}
           />
           <Divider />
           <List.Item

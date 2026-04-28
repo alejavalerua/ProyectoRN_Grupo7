@@ -22,7 +22,7 @@ export default function StudentCourseDetailScreen() {
       <Appbar.Header style={{ backgroundColor: theme.colors.background }}>
         <Appbar.BackAction onPress={() => navigation.goBack()} />
         <Appbar.Content title={courseTitle} titleStyle={styles.appbarTitle} />
-        <Appbar.Action icon="bell-outline" onPress={() => {}} />
+        <Appbar.Action icon="bell-outline" onPress={() => navigation.navigate('Notifications')} />
       </Appbar.Header>
 
       <ScrollView contentContainerStyle={styles.content}>

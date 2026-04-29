@@ -1,5 +1,5 @@
-import React from "react";
-import { View, StyleSheet, ScrollView, Alert, Platform } from "react-native";
+import React, { useState } from 'react';
+import { View, StyleSheet, ScrollView } from 'react-native';
 import {
   Text,
   useTheme,
@@ -7,63 +7,49 @@ import {
   List,
   Surface,
   Divider,
-} from "react-native-paper";
-import { useNavigation } from "@react-navigation/native";
-import { useAuth } from "../../../auth/presentation/context/authContext";
-import { showAlert } from "../../../../core/utils/alerts";
+  Portal,
+  Modal,
+  Button,
+} from 'react-native-paper';
+import { useNavigation } from '@react-navigation/native';
+
+import { useAuth } from '../../../auth/presentation/context/authContext';
+import { showAlert } from '../../../../core/utils/alerts';
 
 export default function ProfileScreen() {
   const theme = useTheme();
   const navigation = useNavigation<any>();
-
   const { user, signOut } = useAuth();
 
-  const name = user?.name || "Usuario";
-  const email = user?.email || "usuario@ejemplo.com";
+  const [logoutModalVisible, setLogoutModalVisible] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
+
+  const name = user?.name || 'Usuario';
+  const email = user?.email || 'usuario@ejemplo.com';
   const firstLetter = email.charAt(0).toUpperCase();
 
-  const handleOpenNotifications = () => {
-    const parentNavigation = navigation.getParent();
-    if (parentNavigation) {
-      parentNavigation.navigate("Notifications");
-    } else {
-      navigation.navigate("Notifications");
-    }
+  const openLogoutModal = () => setLogoutModalVisible(true);
+  const closeLogoutModal = () => {
+    if (!isSigningOut) setLogoutModalVisible(false);
   };
 
-  const handleSignOut = async () => {
-    if (Platform.OS === "web") {
-      const confirm = window.confirm("¿Estás seguro de que quieres salir?");
-      if (confirm) {
-        try {
-          await signOut();
-        } catch (error) {
-          console.error("Error al cerrar sesión:", error);
-        }
-      }
-    } else {
-      Alert.alert("Cerrar Sesión", "¿Estás seguro de que quieres salir?", [
-        { text: "Cancelar", style: "cancel" },
-        {
-          text: "Salir",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await signOut();
-            } catch (error) {
-              console.error("Error al cerrar sesión:", error);
-            }
-          },
-        },
-      ]);
+  const handleConfirmSignOut = async () => {
+    try {
+      setIsSigningOut(true);
+      await signOut();
+      setLogoutModalVisible(false);
+    } catch (error) {
+      console.error('Error al cerrar sesión:', error);
+      showAlert('Error', 'No se pudo cerrar sesión');
+    } finally {
+      setIsSigningOut(false);
     }
   };
 
   return (
-    <View
-      style={[styles.container, { backgroundColor: theme.colors.background }]}
-    >
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
+        {/* Encabezado */}
         <Text
           variant="headlineSmall"
           style={[styles.headerTitle, { color: theme.colors.primary }]}
@@ -71,6 +57,7 @@ export default function ProfileScreen() {
           Perfil
         </Text>
 
+        {/* Información del Usuario */}
         <View style={styles.userInfoContainer}>
           <Avatar.Text
             size={100}
@@ -84,66 +71,179 @@ export default function ProfileScreen() {
           >
             {name}
           </Text>
-          <Text
-            variant="bodyMedium"
-            style={{ color: theme.colors.onSurfaceVariant }}
-          >
+          <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
             {email}
           </Text>
         </View>
 
+        {/* Tarjeta de Configuraciones */}
         <Surface
-          style={[
-            styles.settingsCard,
-            { backgroundColor: theme.colors.surface },
-          ]}
+          style={[styles.settingsCard, { backgroundColor: theme.colors.surface }]}
           elevation={1}
         >
           <List.Item
             title="Notificaciones"
             left={(props) => (
-              <List.Icon
-                {...props}
-                icon="bell-outline"
-                color={theme.colors.primary}
-              />
+              <List.Icon {...props} icon="bell-outline" color={theme.colors.primary} />
             )}
             right={(props) => <List.Icon {...props} icon="chevron-right" />}
-            onPress={handleOpenNotifications}
+            onPress={() => navigation.navigate('Notifications')}
           />
           <Divider />
+
           <List.Item
             title="Privacidad y seguridad"
             left={(props) => (
-              <List.Icon
-                {...props}
-                icon="shield-outline"
-                color={theme.colors.primary}
-              />
+              <List.Icon {...props} icon="shield-outline" color={theme.colors.primary} />
             )}
             right={(props) => <List.Icon {...props} icon="chevron-right" />}
-            onPress={() => showAlert("Privacidad", "Próximamente...")}
+            onPress={() => showAlert('Privacidad', 'Próximamente...')}
           />
           <Divider />
+
           <List.Item
             title="Cerrar sesión"
-            titleStyle={{ color: theme.colors.error, fontWeight: "bold" }}
+            titleStyle={{ color: theme.colors.error, fontWeight: 'bold' }}
             left={(props) => (
               <List.Icon {...props} icon="logout" color={theme.colors.error} />
             )}
-            onPress={handleSignOut}
+            right={(props) => <List.Icon {...props} icon="chevron-right" />}
+            onPress={openLogoutModal}
           />
         </Surface>
       </ScrollView>
+
+      {/* Modal personalizado de cerrar sesión */}
+      <Portal>
+        <Modal
+          visible={logoutModalVisible}
+          onDismiss={closeLogoutModal}
+          contentContainerStyle={[
+            styles.modalContainer,
+            { backgroundColor: theme.colors.surface },
+          ]}
+        >
+          <Text style={[styles.modalTitle, { color: theme.colors.onSurface }]}>
+            Cerrar Sesión
+          </Text>
+
+          <Text style={[styles.modalMessage, { color: theme.colors.onSurfaceVariant }]}>
+            ¿Estás seguro de que quieres salir?
+          </Text>
+
+          <View style={styles.modalButtons}>
+            <Button
+              mode="outlined"
+              onPress={closeLogoutModal}
+              disabled={isSigningOut}
+              style={[
+                styles.cancelButton,
+                { borderColor: theme.colors.primary },
+              ]}
+              labelStyle={[
+                styles.cancelButtonLabel,
+                { color: theme.colors.primary },
+              ]}
+            >
+              Cancelar
+            </Button>
+
+            <Button
+              mode="contained"
+              onPress={handleConfirmSignOut}
+              loading={isSigningOut}
+              disabled={isSigningOut}
+              style={[
+                styles.logoutButton,
+                { backgroundColor: theme.colors.secondary },
+              ]}
+              labelStyle={styles.logoutButtonLabel}
+            >
+              Salir
+            </Button>
+          </View>
+        </Modal>
+      </Portal>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  scrollContent: { padding: 24, paddingTop: 60 },
-  headerTitle: { fontWeight: "bold", marginBottom: 40 },
-  userInfoContainer: { alignItems: "center", marginBottom: 40 },
-  nameText: { fontWeight: "bold", marginTop: 16, marginBottom: 4 },
-  settingsCard: { borderRadius: 16, overflow: "hidden" },
+
+  scrollContent: {
+    padding: 24,
+    paddingTop: 60,
+  },
+
+  headerTitle: {
+    fontWeight: 'bold',
+    marginBottom: 40,
+  },
+
+  userInfoContainer: {
+    alignItems: 'center',
+    marginBottom: 40,
+  },
+
+  nameText: {
+    fontWeight: 'bold',
+    marginTop: 16,
+    marginBottom: 4,
+  },
+
+  settingsCard: {
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+
+  modalContainer: {
+    marginHorizontal: 28,
+    borderRadius: 24,
+    paddingHorizontal: 24,
+    paddingTop: 20,
+    paddingBottom: 16,
+  },
+
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    textAlign: 'center',
+    marginBottom: 14,
+  },
+
+  modalMessage: {
+    fontSize: 16,
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: 20,
+  },
+
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 12,
+  },
+
+  cancelButton: {
+    borderRadius: 18,
+    minWidth: 110,
+    borderWidth: 2,
+  },
+
+  cancelButtonLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+
+  logoutButton: {
+    borderRadius: 18,
+    minWidth: 95,
+  },
+
+  logoutButtonLabel: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#fff',
+  },
 });

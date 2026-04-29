@@ -16,7 +16,6 @@ export const CriteriaBarChart: React.FC<CriteriaBarChartProps> = ({
 }) => {
   const theme = useTheme();
 
-  // Filtrar la barra "General" si así se solicita
   const visibleData = hideGeneralBar
     ? data.filter((item) => item.label.toLowerCase() !== 'general')
     : data;
@@ -29,47 +28,66 @@ export const CriteriaBarChart: React.FC<CriteriaBarChartProps> = ({
     );
   }
 
-  // Generamos los marcadores del eje Y (ej: 5, 4, 3, 2, 1, 0)
   const yAxisLabels = Array.from({ length: maxY + 1 }, (_, i) => maxY - i);
+  const plotHeight = 200;
 
   return (
     <View style={styles.container}>
-      {/* EJE Y (Líneas y Textos) */}
-      <View style={styles.yAxisContainer}>
+      {/* Grilla de fondo */}
+      <View style={[styles.gridLayer, { height: plotHeight }]}>
         {yAxisLabels.map((val) => (
-          <View key={`y-${val}`} style={styles.yAxisRow}>
-            <Text style={[styles.yAxisText, { color: theme.colors.onSurfaceVariant }]}>
+          <View key={`y-${val}`} style={styles.gridRow}>
+            <Text
+              style={[
+                styles.yAxisText,
+                { color: theme.colors.onSurfaceVariant },
+              ]}
+            >
               {val}
             </Text>
-            {/* Línea horizontal punteada/sólida de fondo */}
-            <View style={[styles.gridLine, { backgroundColor: theme.colors.outlineVariant }]} />
+            <View
+              style={[
+                styles.gridLine,
+                { backgroundColor: theme.colors.outlineVariant },
+              ]}
+            />
           </View>
         ))}
       </View>
 
-      {/* BARRAS Y EJE X */}
-      <View style={styles.barsArea}>
+      {/* Columnas */}
+      <View style={styles.columnsWrapper}>
         {visibleData.map((item, index) => {
-          // Calculamos la altura de la barra en porcentaje
-          const barHeightPercent = Math.min((item.value / maxY) * 100, 100);
+          const barHeight = Math.max((item.value / maxY) * plotHeight, 2);
 
           return (
-            <View key={`bar-${index}`} style={styles.barColumn}>
-              {/* Contenedor de la barra para que crezca desde abajo */}
-              <View style={styles.barWrapper}>
+            <View key={`bar-${index}`} style={styles.column}>
+              <Text
+                style={[
+                  styles.valueText,
+                  { color: theme.colors.onSurface },
+                ]}
+              >
+                {item.value.toFixed(1)}
+              </Text>
+
+              <View style={[styles.plotColumnArea, { height: plotHeight }]}>
                 <View
                   style={[
                     styles.barFill,
                     {
-                      height: `${barHeightPercent}%`,
-                      backgroundColor: theme.colors.secondary, // El color morado/secundario que usabas
+                      height: barHeight,
+                      backgroundColor: theme.colors.secondary,
                     },
                   ]}
                 />
               </View>
-              {/* Etiqueta del eje X */}
+
               <Text
-                style={[styles.xAxisText, { color: theme.colors.onSurfaceVariant }]}
+                style={[
+                  styles.xAxisText,
+                  { color: theme.colors.onSurfaceVariant },
+                ]}
                 numberOfLines={2}
               >
                 {item.label}
@@ -82,7 +100,6 @@ export const CriteriaBarChart: React.FC<CriteriaBarChartProps> = ({
   );
 };
 
-// Utilidad estática extraída del código Dart original para sacar el promedio general
 export const extractGeneralValue = (data: ChartPoint[]): number | null => {
   const general = data.find((item) => item.label.toLowerCase() === 'general');
   return general ? general.value : null;
@@ -90,65 +107,73 @@ export const extractGeneralValue = (data: ChartPoint[]): number | null => {
 
 const styles = StyleSheet.create({
   container: {
-    height: 240,
-    flexDirection: 'row',
+    height: 300,
+    position: 'relative',
   },
   emptyContainer: {
-    height: 240,
+    height: 300,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  yAxisContainer: {
+
+  // Grilla
+  gridLayer: {
     position: 'absolute',
-    top: 0,
-    bottom: 40, // Dejamos espacio para el texto del eje X
+    top: 28,
     left: 0,
     right: 0,
     justifyContent: 'space-between',
   },
-  yAxisRow: {
+  gridRow: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   yAxisText: {
-    width: 20,
+    width: 24,
+    marginRight: 10,
+    textAlign: 'right',
     fontSize: 12,
     fontWeight: '600',
-    textAlign: 'right',
-    marginRight: 8,
   },
   gridLine: {
     flex: 1,
     height: 1,
-    opacity: 0.5,
+    opacity: 0.55,
   },
-  barsArea: {
-    flex: 1,
+
+  // Columnas
+  columnsWrapper: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    alignItems: 'flex-end',
-    marginLeft: 28, // Espacio para los números del eje Y
-    paddingBottom: 40, // Espacio para el texto inferior
+    alignItems: 'flex-start',
+    marginLeft: 34,
+    paddingTop: 0,
   },
-  barColumn: {
+  column: {
+    width: 64,
     alignItems: 'center',
-    width: 50,
   },
-  barWrapper: {
-    height: 200, // Altura máxima de la barra
-    width: 24,
+  valueText: {
+    height: 20,
+    fontSize: 13,
+    fontWeight: '700',
+    marginBottom: 8,
+  },
+  plotColumnArea: {
+    width: 30,
     justifyContent: 'flex-end',
+    alignItems: 'center',
   },
   barFill: {
-    width: '100%',
-    borderRadius: 8,
+    width: 30,
+    borderRadius: 10,
+    minHeight: 2,
   },
   xAxisText: {
-    position: 'absolute',
-    bottom: -35,
+    marginTop: 10,
     fontSize: 11,
     fontWeight: '500',
     textAlign: 'center',
-    width: 60,
+    width: 74,
   },
 });

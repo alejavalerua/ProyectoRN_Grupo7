@@ -81,7 +81,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({
                 onPress={() => project.onTap?.(title, project.title)}
               >
                 <View style={styles.projectText}>
-                  <Text variant="bodyMedium" style={{ color: theme.colors.onSurface, fontWeight: '500' }}>
+                  <Text variant="bodyMedium" style={{ color: theme.colors.onSurface, fontWeight: "500" }}>
                     {project.title}
                   </Text>
                   <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>

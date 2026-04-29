@@ -1,5 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  Image,
+} from 'react-native';
 import { Button, useTheme } from 'react-native-paper';
 import { useAuth } from '../context/authContext';
 import { AuthTextField } from '../components/AuthTextField';
@@ -10,20 +17,21 @@ export default function SignupScreen() {
   const { signUp, isLoading } = useAuth();
   const navigation = useNavigation<any>();
 
-  // Estados locales para el formulario
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  
+
   const [nameError, setNameError] = useState<string | null>(null);
   const [emailError, setEmailError] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
 
-  // Validación de nombre y apellido (solo letras y espacios)
   const validateName = (val: string) => {
     setName(val);
-    if (!val.trim()) { setNameError(null); return; }
-    
+    if (!val.trim()) {
+      setNameError(null);
+      return;
+    }
+
     const words = val.trim().split(/\s+/);
     if (words.length < 2) {
       setNameError('Debe incluir nombre y apellido');
@@ -38,10 +46,12 @@ export default function SignupScreen() {
     }
   };
 
-  // Validación de correo institucional
   const validateEmail = (val: string) => {
     setEmail(val);
-    if (!val) { setEmailError(null); return; }
+    if (!val) {
+      setEmailError(null);
+      return;
+    }
     if (!val.endsWith('@uninorte.edu.co')) {
       setEmailError('El correo debe ser @uninorte.edu.co');
     } else {
@@ -49,17 +59,19 @@ export default function SignupScreen() {
     }
   };
 
-  // Validación de requisitos de contraseña
   const validatePassword = (val: string) => {
     setPassword(val);
-    if (!val) { setPasswordError(null); return; }
-    
-    let missing = [];
-    if (val.length < 8) missing.push("8 caracteres");
-    if (!/[A-Z]/.test(val)) missing.push("mayúscula");
-    if (!/[a-z]/.test(val)) missing.push("minúscula");
-    if (!/[0-9]/.test(val)) missing.push("número");
-    if (!/[!@#$_\-]/.test(val)) missing.push("símbolo (!@#_-$$)");
+    if (!val) {
+      setPasswordError(null);
+      return;
+    }
+
+    const missing: string[] = [];
+    if (val.length < 8) missing.push('8 caracteres');
+    if (!/[A-Z]/.test(val)) missing.push('mayúscula');
+    if (!/[a-z]/.test(val)) missing.push('minúscula');
+    if (!/[0-9]/.test(val)) missing.push('número');
+    if (!/[!@#$_\-]/.test(val)) missing.push('símbolo (!@#_-$$)');
 
     if (missing.length > 0) {
       setPasswordError(`Falta: ${missing.join(', ')}`);
@@ -68,35 +80,51 @@ export default function SignupScreen() {
     }
   };
 
-  const canSubmit = !isLoading && 
-                    name.length > 0 && email.length > 0 && password.length > 0 && 
-                    !nameError && !emailError && !passwordError;
+  const canSubmit =
+    !isLoading &&
+    name.length > 0 &&
+    email.length > 0 &&
+    password.length > 0 &&
+    !nameError &&
+    !emailError &&
+    !passwordError;
 
   const handleSignUp = async () => {
     await signUp(email.trim(), password.trim(), name.trim());
   };
 
   return (
-    <ScrollView 
-      contentContainerStyle={[styles.scrollContainer, { backgroundColor: theme.colors.background }]}
+    <ScrollView
+      contentContainerStyle={[
+        styles.scrollContainer,
+        { backgroundColor: theme.colors.background },
+      ]}
       keyboardShouldPersistTaps="handled"
     >
-      <Image 
-        source={require('../../../../../assets/images/logo.png')} 
-        style={styles.logo} 
-        resizeMode="contain" 
+      <Image
+        source={require('../../../../../assets/images/logo.png')}
+        style={styles.logo}
+        resizeMode="contain"
       />
-      
-      <Text style={[styles.title, { color: theme.colors.onBackground }]}>Crear cuenta</Text>
+
+      <Text style={[styles.title, { color: theme.colors.onBackground }]}>
+        Crear cuenta
+      </Text>
 
       <View style={styles.row}>
-        <Text style={{ color: theme.dark ? '#B0B0B0' : '#8A8E97' }}>¿Ya tienes una cuenta? </Text>
+        <Text style={{ color: theme.dark ? '#B0B0B0' : '#8A8E97' }}>
+          ¿Ya tienes una cuenta?{' '}
+        </Text>
         <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-          <Text style={{ color: theme.colors.secondary, fontWeight: 'bold' }}>Inicia sesión</Text>
+          <Text style={{ color: theme.colors.secondary, fontWeight: 'bold' }}>
+            Inicia sesión
+          </Text>
         </TouchableOpacity>
       </View>
 
-      <View style={[styles.formContainer, { backgroundColor: theme.colors.surface }]}>
+      <View
+        style={[styles.formContainer, { backgroundColor: theme.colors.surface }]}
+      >
         <AuthTextField
           label="Nombre completo"
           icon="account-outline"
@@ -104,8 +132,6 @@ export default function SignupScreen() {
           onChangeText={validateName}
           errorText={nameError}
         />
-        
-        <View style={[styles.divider, { backgroundColor: theme.colors.outline }]} />
 
         <AuthTextField
           label="Correo electrónico"
@@ -115,8 +141,6 @@ export default function SignupScreen() {
           onChangeText={validateEmail}
           errorText={emailError}
         />
-        
-        <View style={[styles.divider, { backgroundColor: theme.colors.outline }]} />
 
         <AuthTextField
           label="Contraseña"
@@ -144,27 +168,27 @@ export default function SignupScreen() {
 }
 
 const styles = StyleSheet.create({
-  scrollContainer: { 
-    flexGrow: 1, 
-    justifyContent: 'center', 
+  scrollContainer: {
+    flexGrow: 1,
+    justifyContent: 'center',
     paddingHorizontal: 30,
-    paddingVertical: 40 
+    paddingVertical: 40,
   },
-  logo: { 
-    height: 120, 
-    alignSelf: 'center', 
-    marginBottom: 20 
+  logo: {
+    height: 120,
+    alignSelf: 'center',
+    marginBottom: 20,
   },
-  title: { 
-    fontSize: 32, 
-    fontWeight: '800', // h1 ExtraBold
-    textAlign: 'center', 
-    marginBottom: 10 
+  title: {
+    fontSize: 32,
+    fontWeight: '800',
+    textAlign: 'center',
+    marginBottom: 10,
   },
-  row: { 
-    flexDirection: 'row', 
-    justifyContent: 'center', 
-    marginBottom: 40 
+  row: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginBottom: 40,
   },
   formContainer: {
     borderRadius: 10,
@@ -175,20 +199,16 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 6,
     elevation: 3,
+    gap: 12,
   },
-  divider: {
-    height: 1,
-    marginVertical: 10,
-    opacity: 0.5,
+  submitButton: {
+    borderRadius: 15,
   },
-  submitButton: { 
-    borderRadius: 15 
+  submitButtonContent: {
+    height: 55,
   },
-  submitButtonContent: { 
-    height: 55 
+  submitButtonText: {
+    fontSize: 18,
+    fontWeight: 'bold',
   },
-  submitButtonText: { 
-    fontSize: 18, 
-    fontWeight: 'bold' 
-  }
 });

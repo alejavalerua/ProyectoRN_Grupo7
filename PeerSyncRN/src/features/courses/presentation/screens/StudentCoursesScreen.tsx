@@ -1,16 +1,15 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { View, StyleSheet, ScrollView, ActivityIndicator } from "react-native";
 import { Text, FAB, useTheme, IconButton, Badge } from "react-native-paper";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
-// Contextos y Componentes
 import { useCourse } from "../context/CourseContext";
-import { CourseCard, CourseProjectItem } from "../components/CourseCard";
+import { CourseCard } from "../components/CourseCard";
 import { AddCourseModal } from "../components/AddCourseModal";
 import { useCategory } from "../../../categories/presentation/context/CategoryContext";
+import { useEvaluation } from "../../../evaluations/presentation/context/EvaluationContext";
 
-// Tipado estricto para la navegación (Ajusta los nombres según tu AppNavigator)
 type RootStackParamList = {
   StudentCourses: undefined;
   Notifications: undefined;
@@ -27,27 +26,49 @@ export default function StudentCoursesScreen() {
   const theme = useTheme();
   const navigation = useNavigation<NavigationProp>();
 
-  // Consumimos el estado global desde nuestro Contexto
   const { courses, isLoading, joinCourse } = useCourse();
   const {
     loadCategoriesForCourseCardByStudent,
     getCategoryCountText,
-    getCourseProjectItems,
+    getCategoriesPreview,
   } = useCategory();
-  // Estado local para controlar la visibilidad del modal
-  const [isModalVisible, setModalVisible] = useState(false);
+  const { loadPendingActivitiesCount, getPendingActivitySubtitle } =
+    useEvaluation();
 
-  // Mock temporal para notificaciones (luego vendrá de su propio Contexto)
+  const [isModalVisible, setModalVisible] = useState(false);
   const unreadNotifications = 2;
-  // 👇 Efecto reactivo: si los cursos cambian, cargamos sus categorías en background
-  React.useEffect(() => {
+
+  const loadedCoursesRef = useRef<Set<string>>(new Set());
+  const loadedPendingByCategoryRef = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
     courses.forEach((course) => {
-      loadCategoriesForCourseCardByStudent(course.id);
+      if (!loadedCoursesRef.current.has(course.id)) {
+        loadedCoursesRef.current.add(course.id);
+        loadCategoriesForCourseCardByStudent(course.id);
+      }
     });
   }, [courses, loadCategoriesForCourseCardByStudent]);
 
+  useEffect(() => {
+    courses.forEach((course) => {
+      const categories = getCategoriesPreview(course.id);
+
+      categories.forEach((category) => {
+        if (!loadedPendingByCategoryRef.current.has(category.id)) {
+          loadedPendingByCategoryRef.current.add(category.id);
+          loadPendingActivitiesCount(category.id);
+        }
+      });
+    });
+  }, [courses, getCategoriesPreview, loadPendingActivitiesCount]);
+
   const handleAddCourse = async (code: string) => {
     await joinCourse(code);
+
+    loadedCoursesRef.current.clear();
+    loadedPendingByCategoryRef.current.clear();
+
     setModalVisible(false);
   };
 
@@ -56,7 +77,6 @@ export default function StudentCoursesScreen() {
       style={[styles.container, { backgroundColor: theme.colors.background }]}
     >
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* HEADER CON NOTIFICACIONES */}
         <View style={styles.header}>
           <Text
             variant="titleLarge"
@@ -64,6 +84,7 @@ export default function StudentCoursesScreen() {
           >
             Cursos
           </Text>
+
           <View>
             <IconButton
               icon="bell-outline"
@@ -79,7 +100,6 @@ export default function StudentCoursesScreen() {
           </View>
         </View>
 
-        {/* LISTA DE CURSOS */}
         {isLoading ? (
           <View style={styles.centerContent}>
             <ActivityIndicator size="large" color={theme.colors.primary} />
@@ -99,9 +119,19 @@ export default function StudentCoursesScreen() {
         ) : (
           <View style={styles.coursesList}>
             {courses.map((course) => {
-              // 👇 1. Las variables DEBEN estar aquí adentro, antes del return
               const progressText = getCategoryCountText(course.id);
-              const projects = getCourseProjectItems(course.id);
+              const categories = getCategoriesPreview(course.id);
+
+              const projects = categories.slice(0, 3).map((category) => ({
+                title: category.name,
+                subtitle: getPendingActivitySubtitle(category.id),
+                onTap: () => {
+                  navigation.navigate("StudentActivities", {
+                    categoryId: category.id,
+                    categoryName: category.name,
+                  });
+                },
+              }));
 
               return (
                 <View key={course.id} style={styles.cardWrapper}>
@@ -109,16 +139,7 @@ export default function StudentCoursesScreen() {
                     title={course.name}
                     progressText={progressText}
                     leadingIcon="school"
-                    projects={projects.map((p) => ({
-                      ...p,
-                      // 👇 2. Tipado estricto y guion bajo para variables no usadas
-                      onTap: (_courseTitle: string, projectTitle: string) => {
-                        navigation.navigate("StudentActivities", {
-                          categoryId: "TODO-id", // Lo ajustaremos luego
-                          categoryName: projectTitle,
-                        });
-                      },
-                    }))}
+                    projects={projects}
                     onTap={() => {
                       navigation.navigate("StudentCourseDetail", {
                         courseId: course.id,
@@ -133,7 +154,6 @@ export default function StudentCoursesScreen() {
         )}
       </ScrollView>
 
-      {/* FLOATING ACTION BUTTON */}
       <FAB
         icon="plus"
         color="white"
@@ -141,7 +161,6 @@ export default function StudentCoursesScreen() {
         onPress={() => setModalVisible(true)}
       />
 
-      {/* MODAL PARA AGREGAR CURSO */}
       <AddCourseModal
         visible={isModalVisible}
         onDismiss={() => setModalVisible(false)}
@@ -158,7 +177,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingTop: 40,
     paddingHorizontal: 20,
-    paddingBottom: 100, // Espacio para que el FAB no tape el último curso
+    paddingBottom: 100,
   },
   header: {
     flexDirection: "row",
@@ -187,6 +206,6 @@ const styles = StyleSheet.create({
     margin: 20,
     right: 0,
     bottom: 0,
-    borderRadius: 28, // Para hacerlo circular como en Material Design 3
+    borderRadius: 28,
   },
 });

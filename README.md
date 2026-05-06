@@ -73,7 +73,7 @@ Desarrollar una aplicación móvil que permita a estudiantes y docentes realizar
 
 ## 🎥 Demos de la Aplicación
 
-*(Se irán actualizando con demos de la versión React Native)*
+**Entrega #1:** https://youtu.be/2AGyIi9vJXM
 
 <br>
 

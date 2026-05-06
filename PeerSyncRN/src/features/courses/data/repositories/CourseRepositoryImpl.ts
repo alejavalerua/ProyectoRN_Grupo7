@@ -13,6 +13,7 @@ export class CourseRepositoryImpl implements ICourseRepository {
   ) {}
 
   async joinCourse(code: string, email: string): Promise<void> {
+<<<<<<< HEAD
     console.log("📡 JOIN COURSE → API");
 
     await this.authRepository.safeRequest(() =>
@@ -46,12 +47,26 @@ export class CourseRepositoryImpl implements ICourseRepository {
       console.log(`⚠️ ERROR ACTUALIZANDO CACHE: ${e}`);
     }
   }
+=======
+    console.log('📡 JOIN COURSE → API');
+    await this.authRepository.safeRequest(() => this.dataSource.joinCourse(code, email));
+>>>>>>> 23d7c67c30c8d15141b8fce70790d1728e28567a
 
-  async getCourses(): Promise<Course[]> {
+    const userEmail = await this.authRepository.getCurrentUserEmail();
+    if (!userEmail) return;
+
+    const cacheKey = `courses_user_${userEmail}`;
+
     try {
+<<<<<<< HEAD
       console.log("🌐 GET COURSES → API CALL");
       const response = await this.authRepository.safeRequest(() =>
         this.dataSource.getCourses(),
+      );
+
+=======
+      const response = await this.authRepository.safeRequest(() =>
+        this.dataSource.getCoursesByUser()
       );
 
       const courses: Course[] = response.map((e: any) => ({
@@ -60,6 +75,26 @@ export class CourseRepositoryImpl implements ICourseRepository {
         code: e.code,
       }));
 
+      await this.localPreferences.storeData<Course[]>(cacheKey, courses);
+      console.log(`💾 CACHE UPDATED AFTER JOIN (${userEmail})`);
+    } catch (e) {
+      console.log(`⚠️ No se pudo refrescar cache después del join: ${e}`);
+    }
+  }
+
+  async getCourses(): Promise<Course[]> {
+    try {
+      console.log('🌐 GET COURSES → API CALL');
+      const response = await this.authRepository.safeRequest(() => this.dataSource.getCourses());
+
+>>>>>>> 23d7c67c30c8d15141b8fce70790d1728e28567a
+      const courses: Course[] = response.map((e: any) => ({
+        id: e.id,
+        name: e.name,
+        code: e.code,
+      }));
+
+<<<<<<< HEAD
       // 🔥 Guardar en caché delegando el parseo a ILocalPreferences
       await this.localPreferences.storeData<Course[]>("courses", courses);
       console.log("💾 CACHE SAVED (courses)");
@@ -71,6 +106,16 @@ export class CourseRepositoryImpl implements ICourseRepository {
       // 🔥 Leer caché con tipado seguro
       const storedCourses =
         await this.localPreferences.retrieveData<Course[]>("courses");
+=======
+      await this.localPreferences.storeData<Course[]>('courses', courses);
+      console.log('💾 CACHE SAVED (courses)');
+
+      return courses;
+    } catch (e) {
+      console.log('❌ API FALLÓ → usando CACHE');
+
+      const storedCourses = await this.localPreferences.retrieveData<Course[]>('courses');
+>>>>>>> 23d7c67c30c8d15141b8fce70790d1728e28567a
 
       if (!storedCourses || storedCourses.length === 0) {
         console.log("⚠️ NO HAY CACHE");
@@ -146,25 +191,29 @@ export class CourseRepositoryImpl implements ICourseRepository {
     }
 
     const cacheKey = `courses_user_${userEmail}`;
+<<<<<<< HEAD
 
     // 🔥 1. INTENTAR LEER CACHÉ PRIMERO (FAST LOAD)
     const cachedCourses =
       await this.localPreferences.retrieveData<Course[]>(cacheKey);
+=======
+    const cachedCourses = await this.localPreferences.retrieveData<Course[]>(cacheKey);
+>>>>>>> 23d7c67c30c8d15141b8fce70790d1728e28567a
 
     if (cachedCourses) {
       console.log(`⚡ CARGANDO CURSOS DESDE CACHÉ (${userEmail})`);
-
-      // 🔥 REFRESH EN BACKGROUND (sin bloquear UI ni usar await)
       this._refreshCoursesInBackground(userEmail, cacheKey);
-
       return cachedCourses;
     }
 
-    // 🔥 2. SI NO HAY CACHÉ → API
     console.log(`🌐 GET COURSES BY USER → API (${userEmail})`);
+<<<<<<< HEAD
     const response = await this.authRepository.safeRequest(() =>
       this.dataSource.getCoursesByUser(),
     );
+=======
+    const response = await this.authRepository.safeRequest(() => this.dataSource.getCoursesByUser());
+>>>>>>> 23d7c67c30c8d15141b8fce70790d1728e28567a
 
     const courses: Course[] = response.map((e: any) => ({
       id: e.id,
@@ -184,9 +233,13 @@ export class CourseRepositoryImpl implements ICourseRepository {
   ): Promise<void> {
     try {
       console.log(`🔄 REFRESH EN BACKGROUND (${userEmail})`);
+<<<<<<< HEAD
       const response = await this.authRepository.safeRequest(() =>
         this.dataSource.getCoursesByUser(),
       );
+=======
+      const response = await this.authRepository.safeRequest(() => this.dataSource.getCoursesByUser());
+>>>>>>> 23d7c67c30c8d15141b8fce70790d1728e28567a
 
       const courses: Course[] = response.map((e: any) => ({
         id: e.id,

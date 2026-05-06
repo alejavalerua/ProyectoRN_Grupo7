@@ -1,152 +1,103 @@
-import { ICourseRepository } from "../../domain/repositories/ICourseRepository";
-import { Course } from "../../domain/entities/Course";
-import { ICourseRemoteSource } from "../datasources/ICourseRemoteSource";
+import { ICourseRepository } from '../../domain/repositories/ICourseRepository';
+import { Course } from '../../domain/entities/Course';
+import { ICourseRemoteSource } from '../datasources/ICourseRemoteSource';
 
-import { ILocalPreferences } from "../../../../core/iLocalPreferences";
-import { AuthRepository } from "@/src/features/auth/domain/repositories/AuthRepository";
+import { ILocalPreferences } from '../../../../core/iLocalPreferences';
+import { AuthRepository } from '@/src/features/auth/domain/repositories/AuthRepository';
 
 export class CourseRepositoryImpl implements ICourseRepository {
   constructor(
     private dataSource: ICourseRemoteSource,
     private authRepository: AuthRepository,
-    private localPreferences: ILocalPreferences,
+    private localPreferences: ILocalPreferences
   ) {}
 
   async joinCourse(code: string, email: string): Promise<void> {
-<<<<<<< HEAD
-    console.log("📡 JOIN COURSE → API");
+  console.log('📡 JOIN COURSE → API');
 
-    await this.authRepository.safeRequest(() =>
-      this.dataSource.joinCourse(code, email),
+  await this.authRepository.safeRequest(() =>
+    this.dataSource.joinCourse(code, email)
+  );
+
+  // 🔥 IMPORTANTE: refrescar cursos del usuario
+  const userEmail = await this.authRepository.getCurrentUserEmail();
+
+  if (!userEmail) return;
+
+  const cacheKey = `courses_user_${userEmail}`;
+
+  console.log('🔄 ACTUALIZANDO CACHE DESPUÉS DE JOIN');
+
+  try {
+    const response = await this.authRepository.safeRequest(() =>
+      this.dataSource.getCoursesByUser()
     );
 
-    // 🔥 IMPORTANTE: refrescar cursos del usuario
-    const userEmail = await this.authRepository.getCurrentUserEmail();
+    const courses: Course[] = response.map((e: any) => ({
+      id: e.id,
+      name: e.name,
+      code: e.code,
+    }));
 
-    if (!userEmail) return;
+    await this.localPreferences.storeData<Course[]>(cacheKey, courses);
 
-    const cacheKey = `courses_user_${userEmail}`;
-
-    console.log("🔄 ACTUALIZANDO CACHE DESPUÉS DE JOIN");
-
-    try {
-      const response = await this.authRepository.safeRequest(() =>
-        this.dataSource.getCoursesByUser(),
-      );
-
-      const courses: Course[] = response.map((e: any) => ({
-        id: e.id,
-        name: e.name,
-        code: e.code,
-      }));
-
-      await this.localPreferences.storeData<Course[]>(cacheKey, courses);
-
-      console.log("💾 CACHE ACTUALIZADA (joinCourse)");
-    } catch (e) {
-      console.log(`⚠️ ERROR ACTUALIZANDO CACHE: ${e}`);
-    }
+    console.log('💾 CACHE ACTUALIZADA (joinCourse)');
+  } catch (e) {
+    console.log(`⚠️ ERROR ACTUALIZANDO CACHE: ${e}`);
   }
-=======
-    console.log('📡 JOIN COURSE → API');
-    await this.authRepository.safeRequest(() => this.dataSource.joinCourse(code, email));
->>>>>>> 23d7c67c30c8d15141b8fce70790d1728e28567a
-
-    const userEmail = await this.authRepository.getCurrentUserEmail();
-    if (!userEmail) return;
-
-    const cacheKey = `courses_user_${userEmail}`;
-
-    try {
-<<<<<<< HEAD
-      console.log("🌐 GET COURSES → API CALL");
-      const response = await this.authRepository.safeRequest(() =>
-        this.dataSource.getCourses(),
-      );
-
-=======
-      const response = await this.authRepository.safeRequest(() =>
-        this.dataSource.getCoursesByUser()
-      );
-
-      const courses: Course[] = response.map((e: any) => ({
-        id: e.id,
-        name: e.name,
-        code: e.code,
-      }));
-
-      await this.localPreferences.storeData<Course[]>(cacheKey, courses);
-      console.log(`💾 CACHE UPDATED AFTER JOIN (${userEmail})`);
-    } catch (e) {
-      console.log(`⚠️ No se pudo refrescar cache después del join: ${e}`);
-    }
-  }
+}
 
   async getCourses(): Promise<Course[]> {
     try {
       console.log('🌐 GET COURSES → API CALL');
       const response = await this.authRepository.safeRequest(() => this.dataSource.getCourses());
-
->>>>>>> 23d7c67c30c8d15141b8fce70790d1728e28567a
+      
       const courses: Course[] = response.map((e: any) => ({
         id: e.id,
         name: e.name,
         code: e.code,
       }));
 
-<<<<<<< HEAD
       // 🔥 Guardar en caché delegando el parseo a ILocalPreferences
-      await this.localPreferences.storeData<Course[]>("courses", courses);
-      console.log("💾 CACHE SAVED (courses)");
-
-      return courses;
-    } catch (e) {
-      console.log("❌ API FALLÓ → usando CACHE");
-
-      // 🔥 Leer caché con tipado seguro
-      const storedCourses =
-        await this.localPreferences.retrieveData<Course[]>("courses");
-=======
       await this.localPreferences.storeData<Course[]>('courses', courses);
       console.log('💾 CACHE SAVED (courses)');
 
       return courses;
     } catch (e) {
       console.log('❌ API FALLÓ → usando CACHE');
-
+      
+      // 🔥 Leer caché con tipado seguro
       const storedCourses = await this.localPreferences.retrieveData<Course[]>('courses');
->>>>>>> 23d7c67c30c8d15141b8fce70790d1728e28567a
 
       if (!storedCourses || storedCourses.length === 0) {
-        console.log("⚠️ NO HAY CACHE");
+        console.log('⚠️ NO HAY CACHE');
         return [];
       }
 
-      console.log("⚡ CACHE HIT (courses)");
+      console.log('⚡ CACHE HIT (courses)');
       return storedCourses;
     }
   }
 
   async createCourse(course: Course): Promise<boolean> {
     try {
-      console.log("🌐 CREATE COURSE → API");
+      console.log('🌐 CREATE COURSE → API');
       const response = await this.authRepository.safeRequest(() =>
-        this.dataSource.createCourse(course.id, course.name, course.code),
+        this.dataSource.createCourse(course.id, course.name, course.code)
       );
 
-      const storedCourses =
-        await this.localPreferences.retrieveData<Course[]>("courses");
+      const storedCourses = await this.localPreferences.retrieveData<Course[]>('courses');
       let list: Course[] = [];
 
       if (storedCourses) {
         list = storedCourses;
-        console.log("⚡ CACHE LOAD antes de insertar");
+        console.log('⚡ CACHE LOAD antes de insertar');
       }
 
       list.push({ id: response.id, name: response.name, code: response.code });
 
-      await this.localPreferences.storeData<Course[]>("courses", list);
-      console.log("💾 CACHE UPDATED (course creado)");
+      await this.localPreferences.storeData<Course[]>('courses', list);
+      console.log('💾 CACHE UPDATED (course creado)');
 
       return true;
     } catch (e) {
@@ -157,23 +108,20 @@ export class CourseRepositoryImpl implements ICourseRepository {
 
   async updateCourse(course: Course): Promise<boolean> {
     try {
-      console.log("🌐 UPDATE COURSE → API");
-      await this.authRepository.safeRequest(() =>
-        this.dataSource.updateCourse(course.id, course.name),
-      );
+      console.log('🌐 UPDATE COURSE → API');
+      await this.authRepository.safeRequest(() => this.dataSource.updateCourse(course.id, course.name));
 
-      const storedCourses =
-        await this.localPreferences.retrieveData<Course[]>("courses");
+      const storedCourses = await this.localPreferences.retrieveData<Course[]>('courses');
       if (!storedCourses) {
-        console.log("⚠️ No hay cache para actualizar");
+        console.log('⚠️ No hay cache para actualizar');
         return true;
       }
 
       let list: Course[] = storedCourses;
       list = list.map((e) => (e.id === course.id ? course : e));
 
-      await this.localPreferences.storeData<Course[]>("courses", list);
-      console.log("💾 CACHE UPDATED (course actualizado)");
+      await this.localPreferences.storeData<Course[]>('courses', list);
+      console.log('💾 CACHE UPDATED (course actualizado)');
 
       return true;
     } catch (e) {
@@ -186,35 +134,28 @@ export class CourseRepositoryImpl implements ICourseRepository {
     const userEmail = await this.authRepository.getCurrentUserEmail();
 
     if (!userEmail) {
-      console.log("❌ No hay usuario logueado");
+      console.log('❌ No hay usuario logueado');
       return [];
     }
 
     const cacheKey = `courses_user_${userEmail}`;
-<<<<<<< HEAD
 
     // 🔥 1. INTENTAR LEER CACHÉ PRIMERO (FAST LOAD)
-    const cachedCourses =
-      await this.localPreferences.retrieveData<Course[]>(cacheKey);
-=======
     const cachedCourses = await this.localPreferences.retrieveData<Course[]>(cacheKey);
->>>>>>> 23d7c67c30c8d15141b8fce70790d1728e28567a
 
     if (cachedCourses) {
       console.log(`⚡ CARGANDO CURSOS DESDE CACHÉ (${userEmail})`);
+
+      // 🔥 REFRESH EN BACKGROUND (sin bloquear UI ni usar await)
       this._refreshCoursesInBackground(userEmail, cacheKey);
+
       return cachedCourses;
     }
 
+    // 🔥 2. SI NO HAY CACHÉ → API
     console.log(`🌐 GET COURSES BY USER → API (${userEmail})`);
-<<<<<<< HEAD
-    const response = await this.authRepository.safeRequest(() =>
-      this.dataSource.getCoursesByUser(),
-    );
-=======
     const response = await this.authRepository.safeRequest(() => this.dataSource.getCoursesByUser());
->>>>>>> 23d7c67c30c8d15141b8fce70790d1728e28567a
-
+    
     const courses: Course[] = response.map((e: any) => ({
       id: e.id,
       name: e.name,
@@ -227,20 +168,11 @@ export class CourseRepositoryImpl implements ICourseRepository {
     return courses;
   }
 
-  private async _refreshCoursesInBackground(
-    userEmail: string,
-    cacheKey: string,
-  ): Promise<void> {
+  private async _refreshCoursesInBackground(userEmail: string, cacheKey: string): Promise<void> {
     try {
       console.log(`🔄 REFRESH EN BACKGROUND (${userEmail})`);
-<<<<<<< HEAD
-      const response = await this.authRepository.safeRequest(() =>
-        this.dataSource.getCoursesByUser(),
-      );
-=======
       const response = await this.authRepository.safeRequest(() => this.dataSource.getCoursesByUser());
->>>>>>> 23d7c67c30c8d15141b8fce70790d1728e28567a
-
+      
       const courses: Course[] = response.map((e: any) => ({
         id: e.id,
         name: e.name,

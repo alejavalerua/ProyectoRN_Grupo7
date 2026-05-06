@@ -309,24 +309,53 @@ export default function HomeScreen() {
                 ? getTeacherActivityUIData(activity)
                 : getActivityUIData(activity);
 
-              const dateBgColor = uiData.isExpired
-                ? theme.colors.surfaceVariant
-                : theme.colors.primaryContainer;
+              // 🧪 DEBUG FUERTE
+              console.log('🧪 ACTIVITY DEBUG →', {
+                id: activity.id,
+                name: activity.name,
+                month: uiData.month,
+                day: uiData.day,
+                statusTag: isTeacher ? uiData.statusTag : uiData.statusLabel,
+                statusDetail: uiData.statusDetail,
+                types: {
+                  month: typeof uiData.month,
+                  day: typeof uiData.day,
+                  statusTag: typeof (isTeacher ? uiData.statusTag : uiData.statusLabel),
+                  statusDetail: typeof uiData.statusDetail,
+                },
+              });
 
-              const dateTextColor = uiData.isExpired
-                ? theme.colors.onSurfaceVariant
-                : theme.colors.primary;
+              const safeStatusDetail =
+                typeof uiData.statusDetail === 'string'
+                  ? uiData.statusDetail.trim()
+                  : '';
+
+              const safeStatusTag =
+                typeof (isTeacher ? uiData.statusTag : uiData.statusLabel) === 'string'
+                  ? (isTeacher ? uiData.statusTag : uiData.statusLabel).trim()
+                  : '';
+
+              const safeMonth = uiData.month?.toString?.() ?? '';
+              const safeDay = uiData.day?.toString?.() ?? '';
 
               return (
                 <View key={activity.id} style={{ marginBottom: 16 }}>
                   <ActivityCard
-                    title={activity.name}
-                    month={uiData.month}
-                    day={uiData.day}
-                    statusTag={isTeacher ? uiData.statusTag : uiData.statusLabel}
-                    statusDetail={uiData.statusDetail}
-                    dateBgColor={dateBgColor}
-                    dateTextColor={dateTextColor}
+                    title={activity.name ?? ''}
+                    month={safeMonth}
+                    day={safeDay}
+                    statusTag={safeStatusTag}
+                    statusDetail={safeStatusDetail}
+                    dateBgColor={
+                      uiData.isExpired
+                        ? theme.colors.surfaceVariant
+                        : theme.colors.primaryContainer
+                    }
+                    dateTextColor={
+                      uiData.isExpired
+                        ? theme.colors.onSurfaceVariant
+                        : theme.colors.primary
+                    }
                     onTap={() => {
                       if (isTeacher) {
                         navigation.navigate('TeacherReport', {

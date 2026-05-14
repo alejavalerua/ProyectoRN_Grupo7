@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   View,
   StyleSheet,
@@ -15,6 +15,7 @@ import { CreateCourseModal } from "../components/CreateCourseModal";
 import { showAlert } from "@/src/core/utils/alerts";
 import { useCategory } from "../../../categories/presentation/context/CategoryContext";
 import { useEvaluation } from "../../../evaluations/presentation/context/EvaluationContext";
+import { useGroup } from "../../../groups/presentation/context/GroupContext";
 
 type RootStackParamList = {
   TeacherCourses: undefined;
@@ -38,6 +39,7 @@ export default function TeacherCoursesScreen() {
   const navigation = useNavigation<NavigationProp>();
 
   const { courses, isLoading, createCourse } = useCourse();
+  const { importCsvData } = useGroup();
   const {
     loadCategoriesForCourseCard,
     getCategoryCountText,
@@ -86,12 +88,22 @@ export default function TeacherCoursesScreen() {
       const newCourseId = await createCourse(name);
 
       if (newCourseId && fileUri) {
-        console.log(`Simulando subida de CSV para el curso ${newCourseId}`);
+        const response = await fetch(fileUri);
+        const csvString = await response.text();
+
+        const success = await importCsvData(newCourseId, csvString);
+
+        if (!success) {
+          showAlert(
+            "Advertencia",
+            "El curso fue creado, pero no se pudo importar el CSV."
+          );
+        }
       }
     } catch (error: any) {
       showAlert(
         "Error de Registro",
-        error.message || "Ocurrió un error al crear el curso",
+        error.message || "Ocurrió un error al crear el curso"
       );
     } finally {
       setIsProcessingCsv(false);
@@ -99,9 +111,7 @@ export default function TeacherCoursesScreen() {
   };
 
   return (
-    <View
-      style={[styles.container, { backgroundColor: theme.colors.background }]}
-    >
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
           <Text
@@ -206,9 +216,7 @@ export default function TeacherCoursesScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
+  container: { flex: 1 },
   scrollContent: {
     paddingTop: 40,
     paddingHorizontal: 20,

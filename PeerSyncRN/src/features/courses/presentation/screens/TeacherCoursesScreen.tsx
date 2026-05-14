@@ -1,26 +1,31 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   View,
   StyleSheet,
   ScrollView,
   ActivityIndicator,
-  Alert,
 } from "react-native";
 import { Text, FAB, useTheme, IconButton, Badge } from "react-native-paper";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
-// Contextos y Componentes
 import { useCourse } from "../context/CourseContext";
 import { CourseCard, CourseProjectItem } from "../components/CourseCard";
 import { CreateCourseModal } from "../components/CreateCourseModal";
 import { showAlert } from "@/src/core/utils/alerts";
+import { useCategory } from "../../../categories/presentation/context/CategoryContext";
+import { useEvaluation } from "../../../evaluations/presentation/context/EvaluationContext";
 
-// Tipado estricto para la navegación
 type RootStackParamList = {
   TeacherCourses: undefined;
   Notifications: undefined;
   TeacherCourseDetail: { courseId: string; courseTitle: string };
+  TeacherCategoryDetail: {
+    categoryId: string;
+    categoryName: string;
+    courseId: string;
+    courseTitle: string;
+  };
 };
 
 type NavigationProp = NativeStackNavigationProp<
@@ -32,29 +37,56 @@ export default function TeacherCoursesScreen() {
   const theme = useTheme();
   const navigation = useNavigation<NavigationProp>();
 
-  // Consumimos el estado global desde nuestro Contexto
   const { courses, isLoading, createCourse } = useCourse();
+  const {
+    loadCategoriesForCourseCard,
+    getCategoryCountText,
+    getCategoriesPreview,
+  } = useCategory();
+  const {
+    loadActiveActivitiesCount,
+    getActiveActivitySubtitle,
+  } = useEvaluation();
 
-  // Estado local para el modal y para un overlay de carga propio al crear cursos masivos
   const [isModalVisible, setModalVisible] = useState(false);
   const [isProcessingCsv, setIsProcessingCsv] = useState(false);
 
-  // Mock temporal para notificaciones
   const unreadNotifications = 3;
 
+  const loadedCoursesRef = useRef<Set<string>>(new Set());
+  const loadedActiveCountsRef = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    courses.forEach((course) => {
+      if (!loadedCoursesRef.current.has(course.id)) {
+        loadedCoursesRef.current.add(course.id);
+        loadCategoriesForCourseCard(course.id);
+      }
+    });
+  }, [courses, loadCategoriesForCourseCard]);
+
+  useEffect(() => {
+    courses.forEach((course) => {
+      const categories = getCategoriesPreview(course.id);
+
+      categories.forEach((category) => {
+        if (!loadedActiveCountsRef.current.has(category.id)) {
+          loadedActiveCountsRef.current.add(category.id);
+          loadActiveActivitiesCount(category.id);
+        }
+      });
+    });
+  }, [courses, getCategoriesPreview, loadActiveActivitiesCount]);
+
   const handleCreateCourse = async (name: string, fileUri?: string) => {
-    setModalVisible(false); // Cerramos el modal
-    setIsProcessingCsv(true); // Mostramos carga en la pantalla
+    setModalVisible(false);
+    setIsProcessingCsv(true);
 
     try {
       const newCourseId = await createCourse(name);
 
-      if (newCourseId) {
-        if (fileUri) {
-          // TODO: Aquí llamaremos al GroupsContext en el futuro para subir el CSV
-          // await groupsContext.importCsvData(newCourseId, fileUri);
-          console.log(`Simulando subida de CSV para el curso ${newCourseId}`);
-        }
+      if (newCourseId && fileUri) {
+        console.log(`Simulando subida de CSV para el curso ${newCourseId}`);
       }
     } catch (error: any) {
       showAlert(
@@ -71,7 +103,6 @@ export default function TeacherCoursesScreen() {
       style={[styles.container, { backgroundColor: theme.colors.background }]}
     >
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* HEADER CON NOTIFICACIONES */}
         <View style={styles.header}>
           <Text
             variant="titleLarge"
@@ -79,12 +110,13 @@ export default function TeacherCoursesScreen() {
           >
             Cursos
           </Text>
+
           <View>
             <IconButton
               icon="bell-outline"
               iconColor={theme.colors.primary}
               size={28}
-              onPress={() => navigation.navigate("Notifications")}
+              onPress={() => navigation.getParent()?.navigate("Notifications")}
             />
             {unreadNotifications > 0 && (
               <Badge style={styles.badge} size={18}>
@@ -94,7 +126,6 @@ export default function TeacherCoursesScreen() {
           </View>
         </View>
 
-        {/* LISTA DE CURSOS */}
         {isLoading || isProcessingCsv ? (
           <View style={styles.centerContent}>
             <ActivityIndicator size="large" color={theme.colors.primary} />
@@ -122,27 +153,26 @@ export default function TeacherCoursesScreen() {
         ) : (
           <View style={styles.coursesList}>
             {courses.map((course) => {
-              //TODO: Estos datos vendrán del CategoryContext y EvaluationContext en el futuro
-              const progressText = "15 estudiantes inscritos"; // MOCK
+              const categories = getCategoriesPreview(course.id);
 
-              const projects: CourseProjectItem[] = [
-                {
-                  title: "Proyecto Final", // MOCK
-                  subtitle: "10/15 Entregas calificadas", // MOCK
-                  onTap: (courseTitle, projectTitle) => {
-                    navigation.navigate("TeacherCourseDetail", {
-                      courseId: course.id,
-                      courseTitle: course.name,
-                    });
-                  },
+              const projects: CourseProjectItem[] = categories.map((category) => ({
+                title: category.name,
+                subtitle: getActiveActivitySubtitle(category.id),
+                onTap: () => {
+                  navigation.navigate("TeacherCategoryDetail", {
+                    categoryId: category.id,
+                    categoryName: category.name,
+                    courseId: course.id,
+                    courseTitle: course.name,
+                  });
                 },
-              ];
+              }));
 
               return (
                 <View key={course.id} style={styles.cardWrapper}>
                   <CourseCard
                     title={course.name}
-                    progressText={progressText}
+                    progressText={getCategoryCountText(course.id)}
                     leadingIcon="school"
                     projects={projects}
                     onTap={() => {
@@ -159,7 +189,6 @@ export default function TeacherCoursesScreen() {
         )}
       </ScrollView>
 
-      {/* FLOATING ACTION BUTTON */}
       <FAB
         icon="plus"
         color="white"
@@ -167,7 +196,6 @@ export default function TeacherCoursesScreen() {
         onPress={() => setModalVisible(true)}
       />
 
-      {/* MODAL PARA CREAR CURSO */}
       <CreateCourseModal
         visible={isModalVisible}
         onDismiss={() => setModalVisible(false)}
@@ -184,7 +212,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingTop: 40,
     paddingHorizontal: 20,
-    paddingBottom: 100, // Espacio para que el FAB no tape contenido
+    paddingBottom: 100,
   },
   header: {
     flexDirection: "row",

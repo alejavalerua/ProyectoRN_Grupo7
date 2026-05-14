@@ -3,7 +3,6 @@ import { View, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
 import { Text, useTheme, Appbar, FAB } from 'react-native-paper';
 import { useRoute, useNavigation } from '@react-navigation/native';
 
-
 import { CreateActivityModal } from '../components/CreateActivityModal';
 import { useEvaluation } from '@/src/features/evaluations/presentation/context/EvaluationContext';
 import { useEvaluationAnalytics } from '@/src/features/evaluations/presentation/context/EvaluationAnalyticsContext';
@@ -15,23 +14,21 @@ export default function TeacherCategoryDetailScreen() {
   const theme = useTheme();
   const route = useRoute<any>();
   const navigation = useNavigation<any>();
-  
-  // Recibimos los parámetros de la categoría
+
   const { categoryId, categoryName } = route.params;
 
-  // Consumimos los contextos
-  const { 
-    teacherActivities, 
-    isLoadingTeacherActivities, 
-    loadTeacherActivities, 
-    getTeacherActivityUIData, 
-    saveActivity 
+  const {
+    teacherActivities,
+    isLoadingTeacherActivities,
+    loadTeacherActivities,
+    getTeacherActivityUIData,
+    saveActivity,
   } = useEvaluation();
-  
-  const { 
-    teacherCategoryCriteriaChart, 
-    isLoadingTeacherCategoryAnalytics, 
-    loadTeacherCategoryAnalytics 
+
+  const {
+    teacherCategoryCriteriaChart,
+    isLoadingTeacherCategoryAnalytics,
+    loadTeacherCategoryAnalytics,
   } = useEvaluationAnalytics();
 
   const [isModalVisible, setModalVisible] = useState(false);
@@ -41,15 +38,14 @@ export default function TeacherCategoryDetailScreen() {
     loadTeacherCategoryAnalytics(categoryId);
   }, [categoryId]);
 
-  // Lógica de ordenamiento específica para el profesor
   const sortedTeacherActivities = useMemo(() => {
     const now = new Date();
     const getPriority = (activity: any) => {
       const isExpired = now > activity.endDate;
       const isUpcoming = now < activity.startDate;
-      if (!isExpired && !isUpcoming) return 0; // Activa
-      if (isUpcoming) return 1; // Programada
-      return 2; // Finalizada
+      if (!isExpired && !isUpcoming) return 0;
+      if (isUpcoming) return 1;
+      return 2;
     };
 
     return [...teacherActivities].sort((a, b) => {
@@ -64,10 +60,10 @@ export default function TeacherCategoryDetailScreen() {
 
   const handleCreateActivity = async (data: any) => {
     setModalVisible(false);
-    
-    // Si el modal simplificado no envía fechas, le ponemos unas por defecto (1 semana)
+
     const startDate = data.startDate || new Date();
-    const endDate = data.endDate || new Date(new Date().setDate(new Date().getDate() + 7));
+    const endDate =
+      data.endDate || new Date(new Date().setDate(new Date().getDate() + 7));
 
     const success = await saveActivity(categoryId, {
       name: data.name,
@@ -78,8 +74,17 @@ export default function TeacherCategoryDetailScreen() {
     });
 
     if (success) {
-      loadTeacherActivities(categoryId);
-      loadTeacherCategoryAnalytics(categoryId);
+      try {
+        await loadTeacherActivities(categoryId);
+      } catch (e) {
+        console.log('Error refrescando actividades del profesor:', e);
+      }
+
+      try {
+        await loadTeacherCategoryAnalytics(categoryId);
+      } catch (e) {
+        console.log('Error refrescando analíticas:', e);
+      }
     }
   };
 
@@ -98,8 +103,6 @@ export default function TeacherCategoryDetailScreen() {
       </Appbar.Header>
 
       <ScrollView contentContainerStyle={styles.content}>
-        
-        {/* GRÁFICO DE RENDIMIENTO GRUPAL */}
         <AnalyticsCard
           title="Rendimiento por criterio"
           subtitle="Promedio del grupo en esta categoría"
@@ -121,20 +124,18 @@ export default function TeacherCategoryDetailScreen() {
 
         <View style={{ height: 24 }} />
 
-        {/* LISTA DE ACTIVIDADES DEL PROFESOR */}
         {isLoadingTeacherActivities ? (
           <ActivityIndicator size="large" color={theme.colors.primary} />
         ) : sortedTeacherActivities.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Text style={{ textAlign: 'center', color: theme.colors.onSurfaceVariant, fontSize: 16 }}>
-              No hay actividades creadas aún.{"\n"}Toca el botón '+' para comenzar.
+              No hay actividades creadas aún.{'\n'}Toca el botón '+' para comenzar.
             </Text>
           </View>
         ) : (
           sortedTeacherActivities.map((activity) => {
             const uiData = getTeacherActivityUIData(activity);
-            
-            // Colores dependiendo de si está vencida o no
+
             const dateBgColor = uiData.isExpired ? theme.colors.surfaceVariant : '#E5DBF5';
             const dateTextColor = uiData.isExpired ? theme.colors.onSurfaceVariant : '#8761BE';
 
@@ -149,7 +150,6 @@ export default function TeacherCategoryDetailScreen() {
                   dateBgColor={dateBgColor}
                   dateTextColor={dateTextColor}
                   onTap={() => {
-                    // 👇 Aquí está la navegación al reporte que construimos
                     navigation.navigate('TeacherReport', {
                       activityId: activity.id,
                       activityName: activity.name,
@@ -163,7 +163,6 @@ export default function TeacherCategoryDetailScreen() {
         )}
       </ScrollView>
 
-      {/* BOTÓN FLOTANTE PARA CREAR ACTIVIDAD */}
       <FAB
         icon="plus"
         style={[styles.fab, { backgroundColor: theme.colors.secondary }]}
@@ -182,7 +181,7 @@ export default function TeacherCategoryDetailScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  content: { padding: 16, paddingBottom: 100 }, // paddingBottom alto para el FAB
+  content: { padding: 16, paddingBottom: 100 },
   generalTag: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20 },
   emptyContainer: { height: 200, justifyContent: 'center', alignItems: 'center' },
   fab: { position: 'absolute', margin: 16, right: 0, bottom: 0, borderRadius: 28 },

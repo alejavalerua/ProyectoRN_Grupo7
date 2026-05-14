@@ -147,6 +147,12 @@ export const EvaluationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     return `${count} actividades pendientes`;
   }, [pendingActivitiesCountByCategory]);
 
+  const sameActivity = (a: Activity, b: Activity) =>
+    a.name === b.name &&
+    a.categoryId === b.categoryId &&
+    a.startDate.getTime() === b.startDate.getTime() &&
+    a.endDate.getTime() === b.endDate.getTime();
+
   const saveActivity = async (
     categoryId: string,
     data: {
@@ -159,6 +165,7 @@ export const EvaluationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   ) => {
     try {
       setIsSaving(true);
+
       await repository.createActivity(
         categoryId,
         data.name,
@@ -167,6 +174,71 @@ export const EvaluationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         data.endDate,
         data.isVisible
       );
+
+      const optimisticActivity: Activity = {
+        id: `local-${Date.now()}`,
+        categoryId,
+        name: data.name,
+        description: data.description || '',
+        startDate: data.startDate,
+        endDate: data.endDate,
+        visibility: data.isVisible,
+      };
+
+      setTeacherActivities((prev) => {
+        if (prev.some((a) => sameActivity(a, optimisticActivity))) return prev;
+        return [...prev, optimisticActivity];
+      });
+
+      setActivities((prev) => {
+        if (prev.some((a) => sameActivity(a, optimisticActivity))) return prev;
+        return [...prev, optimisticActivity];
+      });
+
+      if (optimisticActivity.visibility) {
+        const now = new Date();
+        const isActive =
+          now >= optimisticActivity.startDate && now <= optimisticActivity.endDate;
+        const isPending = now <= optimisticActivity.endDate;
+
+        setActiveActivitiesCountByCategory((prev) => ({
+          ...prev,
+          [categoryId]: (prev[categoryId] || 0) + (isActive ? 1 : 0),
+        }));
+
+        setPendingActivitiesCountByCategory((prev) => ({
+          ...prev,
+          [categoryId]: (prev[categoryId] || 0) + (isPending ? 1 : 0),
+        }));
+
+        setHomeActivities((prev) => {
+          const merged = [...prev, optimisticActivity];
+          const now = new Date();
+
+          merged.sort((a, b) => {
+            const aExp = now > a.endDate;
+            const bExp = now > b.endDate;
+            if (aExp !== bExp) return aExp ? 1 : -1;
+            if (!aExp && !bExp) {
+              return (
+                Math.abs(a.endDate.getTime() - now.getTime()) -
+                Math.abs(b.endDate.getTime() - now.getTime())
+              );
+            }
+            return b.endDate.getTime() - a.endDate.getTime();
+          });
+
+          const deduped: Activity[] = [];
+          for (const item of merged) {
+            if (!deduped.some((a) => sameActivity(a, item))) {
+              deduped.push(item);
+            }
+          }
+
+          return deduped.slice(0, 3);
+        });
+      }
+
       return true;
     } catch (e: any) {
       showAlert('Error', e.message);

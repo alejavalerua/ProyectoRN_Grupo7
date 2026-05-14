@@ -25,15 +25,22 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
 }) => {
   const theme = useTheme();
 
-  const isExpired = statusTag.toLowerCase() === "vencida";
+  const normalizedStatus = (statusTag || "").trim().toLowerCase();
 
-  const finalDateBgColor = isExpired ? "#E5E7EB" : dateBgColor;
-  const finalDateTextColor = isExpired ? "#6B7280" : dateTextColor;
+  const isInactiveStatus =
+    normalizedStatus === "vencida" ||
+    normalizedStatus === "finalizada" ||
+    normalizedStatus === "finalizado";
 
-  const tagBackgroundColor = isExpired ? "#E5E7EB" : "#EDE9FE";
-  const tagBorderColor = isExpired ? "#D1D5DB" : "#DDD6FE";
-  const tagTextColor = isExpired ? "#6B7280" : theme.colors.primary;
-  const chevronColor = isExpired ? "#6B7280" : theme.colors.onSurfaceVariant;
+  const finalDateBgColor = isInactiveStatus ? "#E5E7EB" : dateBgColor;
+  const finalDateTextColor = isInactiveStatus ? "#6B7280" : dateTextColor;
+
+  const tagBackgroundColor = isInactiveStatus ? "#E5E7EB" : "#EDE9FE";
+  const tagBorderColor = isInactiveStatus ? "#D1D5DB" : "#DDD6FE";
+  const tagTextColor = isInactiveStatus ? "#6B7280" : theme.colors.primary;
+  const chevronColor = isInactiveStatus
+    ? "#6B7280"
+    : theme.colors.onSurfaceVariant;
 
   return (
     <Surface

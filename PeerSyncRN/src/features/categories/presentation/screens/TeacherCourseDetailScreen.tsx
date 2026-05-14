@@ -2,14 +2,15 @@ import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
 import { Text, useTheme, Appbar, FAB, Surface, IconButton } from 'react-native-paper';
 import { useRoute, useNavigation } from '@react-navigation/native';
-import * as Clipboard from 'expo-clipboard'; 
-import * as DocumentPicker from 'expo-document-picker'; // 👈 Importamos el tipo
+import * as Clipboard from 'expo-clipboard';
+import * as DocumentPicker from 'expo-document-picker';
 
 import { useCategory } from '../context/CategoryContext';
 import { useCourse } from '../../../courses/presentation/context/CourseContext';
-import { useGroup } from '../../../groups/presentation/context/GroupContext'; 
+import { useGroup } from '../../../groups/presentation/context/GroupContext';
+import { useEvaluation } from '../../../evaluations/presentation/context/EvaluationContext';
 import { CategoryCard } from '../components/CategoryCard';
-import { CreateCategoryModal } from '../components/CreateCategoryModal'; // 👈 Restauramos el Modal
+import { CreateCategoryModal } from '../components/CreateCategoryModal';
 import { showAlert } from '../../../../core/utils/alerts';
 
 export default function TeacherCourseDetailScreen() {
@@ -20,18 +21,22 @@ export default function TeacherCourseDetailScreen() {
 
   const { categories, isLoading: isLoadingCategories, loadCategories } = useCategory();
   const { courses } = useCourse();
-  
-  // Consumimos importCsvData en lugar de pickAndImportCsv
   const { importCsvData, isLoading: isImporting } = useGroup();
+  const { loadActiveActivitiesCount, getActiveActivitySubtitle } = useEvaluation();
 
-  // 👇 Restauramos el estado del Modal
   const [isModalVisible, setModalVisible] = useState(false);
 
   useEffect(() => {
     loadCategories(courseId);
   }, [courseId, loadCategories]);
 
-  const courseCode = courses.find(c => c.id === courseId)?.code;
+  useEffect(() => {
+    categories.forEach((category) => {
+      loadActiveActivitiesCount(category.id);
+    });
+  }, [categories, loadActiveActivitiesCount]);
+
+  const courseCode = courses.find((c) => c.id === courseId)?.code;
 
   const copyToClipboard = async () => {
     if (courseCode) {
@@ -40,22 +45,19 @@ export default function TeacherCourseDetailScreen() {
     }
   };
 
-  // 👇 Lógica para procesar el archivo que devuelve el Modal
   const handleModalCreate = async (file?: DocumentPicker.DocumentPickerAsset) => {
-    setModalVisible(false); // Ocultamos el modal
+    setModalVisible(false);
 
     if (!file) return;
 
     try {
-      // Leemos el texto del archivo usando fetch nativo de Expo
       const response = await fetch(file.uri);
       const csvString = await response.text();
 
-      // Lo enviamos a procesar al Contexto de Grupos
       const success = await importCsvData(courseId, csvString);
 
       if (success) {
-        await loadCategories(courseId); // Refrescamos las categorías
+        await loadCategories(courseId);
       }
     } catch (e: any) {
       showAlert('Error', 'No se pudo leer el contenido del archivo CSV');
@@ -73,6 +75,7 @@ export default function TeacherCourseDetailScreen() {
         <Text variant="titleMedium" style={[styles.label, { color: theme.colors.primary }]}>
           Código del curso
         </Text>
+
         <Surface style={[styles.codeCard, { backgroundColor: theme.colors.surface }]} elevation={2}>
           <Text variant="headlineMedium" style={[styles.codeText, { color: theme.colors.primary }]}>
             {courseCode || '---'}
@@ -80,11 +83,13 @@ export default function TeacherCourseDetailScreen() {
           <IconButton icon="content-copy" mode="contained-tonal" onPress={copyToClipboard} />
         </Surface>
 
-        <Text variant="titleMedium" style={[styles.label, { color: theme.colors.primary, marginTop: 30 }]}>
+        <Text
+          variant="titleMedium"
+          style={[styles.label, { color: theme.colors.primary, marginTop: 30 }]}
+        >
           Categorías de Grupos
         </Text>
 
-        {/* Indicadores de carga conjuntos */}
         {isLoadingCategories || isImporting ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={theme.colors.primary} />
@@ -95,15 +100,25 @@ export default function TeacherCourseDetailScreen() {
             )}
           </View>
         ) : categories.length === 0 ? (
-          <Text style={styles.emptyText}>Este curso no tiene categorías. Toca el botón para importar un CSV.</Text>
+          <Text style={[styles.emptyText, { color: theme.colors.onSurfaceVariant }]}>
+            Este curso no tiene categorías. Toca el botón para importar un CSV.
+          </Text>
         ) : (
           categories.map((item) => (
-            <CategoryCard
-              key={item.id}
-              title={item.name}
-              subtitle="Ver reportes y actividades"
-              onTap={() => navigation.navigate('TeacherCategoryDetail', { categoryId: item.id, categoryName: item.name })}
-            />
+            <View key={item.id} style={styles.categoryWrapper}>
+              <CategoryCard
+                title={item.name}
+                subtitle={getActiveActivitySubtitle(item.id)}
+                onTap={() =>
+                  navigation.navigate('TeacherCategoryDetail', {
+                    categoryId: item.id,
+                    categoryName: item.name,
+                    courseId,
+                    courseTitle,
+                  })
+                }
+              />
+            </View>
           ))
         )}
       </ScrollView>
@@ -112,14 +127,14 @@ export default function TeacherCourseDetailScreen() {
         icon="plus"
         style={[styles.fab, { backgroundColor: theme.colors.secondary }]}
         color="white"
-        disabled={isImporting} // Prevenir abrirlo si ya está cargando
+        disabled={isImporting}
         onPress={() => setModalVisible(true)}
       />
 
-      <CreateCategoryModal 
-        visible={isModalVisible} 
-        onDismiss={() => setModalVisible(false)} 
-        onCreate={handleModalCreate} 
+      <CreateCategoryModal
+        visible={isModalVisible}
+        onDismiss={() => setModalVisible(false)}
+        onCreate={handleModalCreate}
       />
     </View>
   );
@@ -128,7 +143,7 @@ export default function TeacherCourseDetailScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   appbarTitle: { fontSize: 18, fontWeight: 'bold' },
-  content: { padding: 20 },
+  content: { padding: 20, paddingBottom: 100 },
   label: { fontWeight: 'bold', marginBottom: 12, marginLeft: 5 },
   codeCard: {
     flexDirection: 'row',
@@ -139,7 +154,14 @@ const styles = StyleSheet.create({
     marginHorizontal: 10,
   },
   codeText: { fontWeight: 'bold', letterSpacing: 1 },
-  emptyText: { textAlign: 'center', marginTop: 20, opacity: 0.6 },
+  emptyText: { textAlign: 'center', marginTop: 20, opacity: 0.7 },
   loadingContainer: { marginTop: 40, alignItems: 'center' },
-  fab: { position: 'absolute', margin: 16, right: 0, bottom: 0, borderRadius: 28 },
+  categoryWrapper: { marginBottom: 14 },
+  fab: {
+    position: 'absolute',
+    margin: 16,
+    right: 0,
+    bottom: 0,
+    borderRadius: 28,
+  },
 });

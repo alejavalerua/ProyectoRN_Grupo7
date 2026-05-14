@@ -7,12 +7,14 @@ interface CriteriaBarChartProps {
   data: ChartPoint[];
   maxY?: number;
   hideGeneralBar?: boolean;
+  showValueLabels?: boolean;
 }
 
 export const CriteriaBarChart: React.FC<CriteriaBarChartProps> = ({
   data,
-  maxY = 5,
+  maxY,
   hideGeneralBar = false,
+  showValueLabels = false,
 }) => {
   const theme = useTheme();
 
@@ -28,12 +30,26 @@ export const CriteriaBarChart: React.FC<CriteriaBarChartProps> = ({
     );
   }
 
-  const yAxisLabels = Array.from({ length: maxY + 1 }, (_, i) => maxY - i);
-  const plotHeight = 200;
+  const highestValue = Math.max(...visibleData.map((item) => item.value), 0);
+
+  const resolvedMaxY =
+    maxY ??
+    (highestValue > 5
+      ? Math.max(50, Math.ceil(highestValue / 10) * 10)
+      : 5);
+
+  const yStep = resolvedMaxY > 5 ? 10 : 1;
+  const yAxisLabels: number[] = [];
+
+  for (let value = resolvedMaxY; value >= 0; value -= yStep) {
+    yAxisLabels.push(value);
+  }
+
+  const plotHeight = 190;
 
   return (
     <View style={styles.container}>
-      {/* Grilla de fondo */}
+      {/* Fondo con eje Y y líneas */}
       <View style={[styles.gridLayer, { height: plotHeight }]}>
         {yAxisLabels.map((val) => (
           <View key={`y-${val}`} style={styles.gridRow}>
@@ -55,21 +71,28 @@ export const CriteriaBarChart: React.FC<CriteriaBarChartProps> = ({
         ))}
       </View>
 
-      {/* Columnas */}
+      {/* Barras */}
       <View style={styles.columnsWrapper}>
         {visibleData.map((item, index) => {
-          const barHeight = Math.max((item.value / maxY) * plotHeight, 2);
+          const rawHeight = (item.value / resolvedMaxY) * plotHeight;
+          const barHeight = Math.max(Math.min(rawHeight, plotHeight), 4);
 
           return (
             <View key={`bar-${index}`} style={styles.column}>
-              <Text
-                style={[
-                  styles.valueText,
-                  { color: theme.colors.onSurface },
-                ]}
-              >
-                {item.value.toFixed(1)}
-              </Text>
+              {showValueLabels ? (
+                <Text
+                  style={[
+                    styles.valueText,
+                    { color: theme.colors.onSurface },
+                  ]}
+                >
+                  {Number.isInteger(item.value)
+                    ? item.value.toString()
+                    : item.value.toFixed(1)}
+                </Text>
+              ) : (
+                <View style={styles.valueSpacer} />
+              )}
 
               <View style={[styles.plotColumnArea, { height: plotHeight }]}>
                 <View
@@ -90,7 +113,7 @@ export const CriteriaBarChart: React.FC<CriteriaBarChartProps> = ({
                 ]}
                 numberOfLines={2}
               >
-                {item.label}
+                {truncateLabel(item.label)}
               </Text>
             </View>
           );
@@ -105,18 +128,21 @@ export const extractGeneralValue = (data: ChartPoint[]): number | null => {
   return general ? general.value : null;
 };
 
+function truncateLabel(label: string, max = 10): string {
+  if (label.length <= max) return label;
+  return `${label.slice(0, max - 3)}...`;
+}
+
 const styles = StyleSheet.create({
   container: {
-    height: 300,
+    height: 270,
     position: 'relative',
   },
   emptyContainer: {
-    height: 300,
+    height: 270,
     justifyContent: 'center',
     alignItems: 'center',
   },
-
-  // Grilla
   gridLayer: {
     position: 'absolute',
     top: 28,
@@ -129,7 +155,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   yAxisText: {
-    width: 24,
+    width: 26,
     marginRight: 10,
     textAlign: 'right',
     fontSize: 12,
@@ -140,18 +166,20 @@ const styles = StyleSheet.create({
     height: 1,
     opacity: 0.55,
   },
-
-  // Columnas
   columnsWrapper: {
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'flex-start',
-    marginLeft: 34,
+    marginLeft: 36,
     paddingTop: 0,
   },
   column: {
-    width: 64,
+    width: 72,
     alignItems: 'center',
+  },
+  valueSpacer: {
+    height: 20,
+    marginBottom: 8,
   },
   valueText: {
     height: 20,
@@ -167,7 +195,7 @@ const styles = StyleSheet.create({
   barFill: {
     width: 30,
     borderRadius: 10,
-    minHeight: 2,
+    minHeight: 4,
   },
   xAxisText: {
     marginTop: 10,

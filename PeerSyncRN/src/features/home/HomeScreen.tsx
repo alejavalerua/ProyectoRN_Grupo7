@@ -1,37 +1,37 @@
-import React, { useEffect, useCallback, useState } from 'react';
+import React, { useEffect, useCallback, useState } from "react";
 import {
   View,
   StyleSheet,
   ScrollView,
   RefreshControl,
   ActivityIndicator,
-} from 'react-native';
-import { Text, useTheme, IconButton, Badge } from 'react-native-paper';
-import { useNavigation } from '@react-navigation/native';
+} from "react-native";
+import { Text, useTheme, IconButton, Badge } from "react-native-paper";
+import { useNavigation } from "@react-navigation/native";
 
-import { useAuth } from '../auth/presentation/context/authContext';
-import { useCourse } from '../courses/presentation/context/CourseContext';
-import { useCategory } from '../categories/presentation/context/CategoryContext';
-import { useEvaluation } from '../evaluations/presentation/context/EvaluationContext';
-import { useEvaluationAnalytics } from '../evaluations/presentation/context/EvaluationAnalyticsContext';
+import { useAuth } from "../auth/presentation/context/authContext";
+import { useCourse } from "../courses/presentation/context/CourseContext";
+import { useCategory } from "../categories/presentation/context/CategoryContext";
+import { useEvaluation } from "../evaluations/presentation/context/EvaluationContext";
+import { useEvaluationAnalytics } from "../evaluations/presentation/context/EvaluationAnalyticsContext";
 
-import { HomeCourseCard } from './components/HomeCourseCard';
-import { ActivityCard } from '../evaluations/presentation/components/ActivityCard';
-import { AnalyticsCard } from '../evaluations/presentation/components/AnalyticsCard';
-import { CriteriaBarChart } from '../evaluations/presentation/components/CriteriaBarChart';
-import { StudentTrendChart } from '../evaluations/presentation/components/StudentTrendChart';
-import { useNotification } from '../notifications/presentation/context/NotificationContext';
+import { HomeCourseCard } from "./components/HomeCourseCard";
+import { ActivityCard } from "../evaluations/presentation/components/ActivityCard";
+import { AnalyticsCard } from "../evaluations/presentation/components/AnalyticsCard";
+import { CriteriaBarChart } from "../evaluations/presentation/components/CriteriaBarChart";
+import { StudentTrendChart } from "../evaluations/presentation/components/StudentTrendChart";
+import { useNotification } from "../notifications/presentation/context/NotificationContext";
 
 const MetricBox = ({
   title,
   value,
-  align = 'left',
+  align = "left",
 }: {
   title: string;
   value: string;
-  align?: 'left' | 'right';
+  align?: "left" | "right";
 }) => {
-  const isRight = align === 'right';
+  const isRight = align === "right";
 
   return (
     <View
@@ -51,7 +51,11 @@ export default function HomeScreen() {
   const navigation = useNavigation<any>();
 
   const { user } = useAuth();
-  const { courses, isLoading: isLoadingCourses, loadCoursesByUser } = useCourse();
+  const {
+    courses,
+    isLoading: isLoadingCourses,
+    loadCoursesByUser,
+  } = useCourse();
   const {
     loadCategoriesForCourseCard,
     loadCategoriesForCourseCardByStudent,
@@ -81,7 +85,7 @@ export default function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [isCascadeLoading, setIsCascadeLoading] = useState(false);
 
-  const isTeacher = user?.role === 'teacher';
+  const isTeacher = user?.role === "teacher";
   const { unreadCount } = useNotification();
 
   useEffect(() => {
@@ -108,7 +112,7 @@ export default function HomeScreen() {
           await loadHomeActivitiesPreview(catIds);
         }
       } catch (error) {
-        console.error('Error en cascada de Home:', error);
+        console.error("Error en cascada de Home:", error);
       } finally {
         setIsCascadeLoading(false);
       }
@@ -136,7 +140,12 @@ export default function HomeScreen() {
     }
 
     setRefreshing(false);
-  }, [loadCoursesByUser, isTeacher, loadTeacherHomeAnalytics, loadStudentHomeAnalytics]);
+  }, [
+    loadCoursesByUser,
+    isTeacher,
+    loadTeacherHomeAnalytics,
+    loadStudentHomeAnalytics,
+  ]);
 
   const recentCourses = [...courses].reverse().slice(0, 2);
   const isAnyLoading =
@@ -149,20 +158,22 @@ export default function HomeScreen() {
   const hasContent = recentCourses.length > 0 || homeActivities.length > 0;
 
   const getStudentStatusLabel = () => {
-    if (!studentAverageMetric?.value) return 'Sin dato';
+    if (!studentAverageMetric?.value) return "Sin dato";
 
     const avg = parseFloat(studentAverageMetric.value);
 
-    if (Number.isNaN(avg)) return 'Sin dato';
-    if (avg < 2.0) return 'Deficiente';
-    if (avg < 3.0) return 'Regular';
-    if (avg < 4.0) return 'Bien';
-    if (avg < 4.5) return 'Muy Bien';
-    return 'Excelente';
+    if (Number.isNaN(avg)) return "Sin dato";
+    if (avg < 2.0) return "Deficiente";
+    if (avg < 3.0) return "Regular";
+    if (avg < 4.0) return "Bien";
+    if (avg < 4.5) return "Muy Bien";
+    return "Excelente";
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <View
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
+    >
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         refreshControl={
@@ -177,15 +188,17 @@ export default function HomeScreen() {
           <View>
             <Text
               variant="titleMedium"
-              style={{ color: theme.colors.primary, fontWeight: 'bold' }}
+              style={{ color: theme.colors.primary, fontWeight: "bold" }}
             >
               Home
             </Text>
             <Text
               variant="headlineSmall"
               style={{
-                color: isTeacher ? theme.colors.secondary : theme.colors.primary,
-                fontWeight: '900',
+                color: isTeacher
+                  ? theme.colors.secondary
+                  : theme.colors.primary,
+                fontWeight: "900",
               }}
             >
               Contenido Reciente
@@ -197,10 +210,12 @@ export default function HomeScreen() {
               icon="bell-outline"
               iconColor={theme.colors.onBackground}
               size={28}
-              onPress={() => navigation.getParent()?.navigate('Notifications')}
+              onPress={() => navigation.getParent()?.navigate("Notifications")}
             />
             {unreadCount > 0 && (
-              <Badge style={[styles.badge, { backgroundColor: theme.colors.error }]}>
+              <Badge
+                style={[styles.badge, { backgroundColor: theme.colors.error }]}
+              >
                 {unreadCount}
               </Badge>
             )}
@@ -219,19 +234,25 @@ export default function HomeScreen() {
                   style={{ height: 180 }}
                 />
               ) : (
-                <CriteriaBarChart data={teacherHomeCompletionTrend} />
+                <CriteriaBarChart
+                  data={teacherHomeCompletionTrend}
+                  maxY={50}
+                  showValueLabels={false}
+                />
               )
             }
             footer={
               <View style={styles.metricsRow}>
                 <MetricBox
-                  title={teacherActiveActivitiesMetric?.title || 'ACTIVAS'}
-                  value={teacherActiveActivitiesMetric?.value || '0'}
+                  title={teacherActiveActivitiesMetric?.title || "ACTIVAS"}
+                  value={teacherActiveActivitiesMetric?.value || "0"}
                   align="left"
                 />
                 <MetricBox
-                  title={teacherPendingGroupsMetric?.title || 'GRUPOS PENDIENTES'}
-                  value={teacherPendingGroupsMetric?.value || '0'}
+                  title={
+                    teacherPendingGroupsMetric?.title || "GRUPOS PENDIENTES"
+                  }
+                  value={teacherPendingGroupsMetric?.value || "0"}
                   align="right"
                 />
               </View>
@@ -262,13 +283,13 @@ export default function HomeScreen() {
             footer={
               <View style={styles.metricsRow}>
                 <MetricBox
-                  title={studentAverageMetric?.title || 'PROMEDIO GENERAL'}
-                  value={studentAverageMetric?.value || '0.0'}
+                  title={studentAverageMetric?.title || "PROMEDIO GENERAL"}
+                  value={studentAverageMetric?.value || "0.0"}
                   align="left"
                 />
                 <MetricBox
-                  title={studentPendingMetric?.title || 'PENDIENTES'}
-                  value={studentPendingMetric?.value || '0'}
+                  title={studentPendingMetric?.title || "PENDIENTES"}
+                  value={studentPendingMetric?.value || "0"}
                   align="right"
                 />
               </View>
@@ -288,7 +309,10 @@ export default function HomeScreen() {
           <View style={styles.emptyContainer}>
             <Text
               variant="titleMedium"
-              style={[styles.emptyText, { color: theme.colors.onSurfaceVariant }]}
+              style={[
+                styles.emptyText,
+                { color: theme.colors.onSurfaceVariant },
+              ]}
             >
               Actualmente no hay nada para mostrar
             </Text>
@@ -310,7 +334,7 @@ export default function HomeScreen() {
                 : getActivityUIData(activity);
 
               // 🧪 DEBUG FUERTE
-              console.log('🧪 ACTIVITY DEBUG →', {
+              console.log("🧪 ACTIVITY DEBUG →", {
                 id: activity.id,
                 name: activity.name,
                 month: uiData.month,
@@ -320,28 +344,31 @@ export default function HomeScreen() {
                 types: {
                   month: typeof uiData.month,
                   day: typeof uiData.day,
-                  statusTag: typeof (isTeacher ? uiData.statusTag : uiData.statusLabel),
+                  statusTag: typeof (isTeacher
+                    ? uiData.statusTag
+                    : uiData.statusLabel),
                   statusDetail: typeof uiData.statusDetail,
                 },
               });
 
               const safeStatusDetail =
-                typeof uiData.statusDetail === 'string'
+                typeof uiData.statusDetail === "string"
                   ? uiData.statusDetail.trim()
-                  : '';
+                  : "";
 
               const safeStatusTag =
-                typeof (isTeacher ? uiData.statusTag : uiData.statusLabel) === 'string'
+                typeof (isTeacher ? uiData.statusTag : uiData.statusLabel) ===
+                "string"
                   ? (isTeacher ? uiData.statusTag : uiData.statusLabel).trim()
-                  : '';
+                  : "";
 
-              const safeMonth = uiData.month?.toString?.() ?? '';
-              const safeDay = uiData.day?.toString?.() ?? '';
+              const safeMonth = uiData.month?.toString?.() ?? "";
+              const safeDay = uiData.day?.toString?.() ?? "";
 
               return (
                 <View key={activity.id} style={{ marginBottom: 16 }}>
                   <ActivityCard
-                    title={activity.name ?? ''}
+                    title={activity.name ?? ""}
                     month={safeMonth}
                     day={safeDay}
                     statusTag={safeStatusTag}
@@ -358,13 +385,13 @@ export default function HomeScreen() {
                     }
                     onTap={() => {
                       if (isTeacher) {
-                        navigation.navigate('TeacherReport', {
+                        navigation.navigate("TeacherReport", {
                           activityId: activity.id,
                           activityName: activity.name,
                           categoryId: activity.categoryId,
                         });
                       } else {
-                        navigation.navigate('StudentEvaluation', {
+                        navigation.navigate("StudentEvaluation", {
                           activityId: activity.id,
                           activityName: activity.name,
                           categoryId: activity.categoryId,
@@ -395,7 +422,8 @@ export default function HomeScreen() {
                   key={course.id}
                   style={[
                     styles.courseWrapper,
-                    index === 0 && recentCourses.length > 1 && { paddingRight: 8 },
+                    index === 0 &&
+                      recentCourses.length > 1 && { paddingRight: 8 },
                     index === 1 && { paddingLeft: 8 },
                   ]}
                 >
@@ -404,12 +432,12 @@ export default function HomeScreen() {
                     subtitle={getCategoryCountText(course.id)}
                     onTap={() => {
                       if (isTeacher) {
-                        navigation.navigate('TeacherCourseDetail', {
+                        navigation.navigate("TeacherCourseDetail", {
                           courseId: course.id,
                           courseTitle: course.name,
                         });
                       } else {
-                        navigation.navigate('StudentCourseDetail', {
+                        navigation.navigate("StudentCourseDetail", {
                           courseId: course.id,
                           courseTitle: course.name,
                         });
@@ -430,13 +458,13 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   scrollContent: { padding: 20, paddingTop: 50, paddingBottom: 40 },
   headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 24,
   },
   badge: {
-    position: 'absolute',
+    position: "absolute",
     top: 6,
     right: 8,
   },
@@ -445,45 +473,45 @@ const styles = StyleSheet.create({
   },
   emptyContainer: {
     height: 250,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   emptyText: {
-    textAlign: 'center',
-    fontWeight: 'bold',
+    textAlign: "center",
+    fontWeight: "bold",
   },
   section: {
     marginTop: 24,
   },
   sectionTitle: {
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginBottom: 16,
   },
   coursesRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
   },
   courseWrapper: {
     flex: 1,
   },
   statusTag: {
-    backgroundColor: '#E9DDFC',
+    backgroundColor: "#E9DDFC",
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 999,
-    alignSelf: 'flex-start',
+    alignSelf: "flex-start",
     marginTop: 2,
   },
   statusTagText: {
-    color: '#7C4DCC',
-    fontWeight: '700',
+    color: "#7C4DCC",
+    fontWeight: "700",
     fontSize: 13,
   },
   metricsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    width: '100%',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    width: "100%",
     paddingHorizontal: 2,
     marginTop: 6,
   },
@@ -491,23 +519,23 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   metricBoxLeft: {
-    alignItems: 'flex-start',
+    alignItems: "flex-start",
   },
   metricBoxRight: {
-    alignItems: 'flex-end',
+    alignItems: "flex-end",
   },
   metricTitle: {
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: "700",
     letterSpacing: 0.4,
-    textTransform: 'uppercase',
-    color: '#9A95B8',
+    textTransform: "uppercase",
+    color: "#9A95B8",
     marginBottom: 8,
   },
   metricValue: {
     fontSize: 26,
-    fontWeight: '800',
-    color: '#201547',
+    fontWeight: "800",
+    color: "#201547",
     lineHeight: 30,
   },
 });

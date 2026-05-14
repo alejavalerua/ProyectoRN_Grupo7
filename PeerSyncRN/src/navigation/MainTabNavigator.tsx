@@ -3,13 +3,13 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useTheme } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
-// Contexto de Auth para saber el rol del usuario
 import { useAuth } from '../features/auth/presentation/context/authContext';
 
-// Pantallas / stacks
 import HomeScreen from '../features/home/HomeScreen';
 import ProfileScreen from '../features/settings/presentation/screens/ProfileScreen';
 import StudentCoursesStackNavigator from './StudentCoursesStackNavigator';
+import TeacherCoursesStackNavigator from './TeacherCoursesStackNavigator';
+
 const Tab = createBottomTabNavigator();
 
 export default function MainTabNavigator() {
@@ -17,6 +17,7 @@ export default function MainTabNavigator() {
   const { user } = useAuth();
 
   const isStudent = user?.role === 'student';
+  const isTeacher = user?.role === 'teacher';
 
   return (
     <Tab.Navigator
@@ -48,7 +49,9 @@ export default function MainTabNavigator() {
         component={
           isStudent
             ? StudentCoursesStackNavigator
-            : () => (null) // Para otros roles, podrías mostrar una pantalla diferente o un mensaje
+            : isTeacher
+            ? TeacherCoursesStackNavigator
+            : StudentCoursesStackNavigator
         }
         options={{
           tabBarLabel: 'Cursos',

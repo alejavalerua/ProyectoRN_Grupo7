@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import * as DocumentPicker from 'expo-document-picker';
 import { Modal, Portal, Text, TextInput, Button, useTheme, Icon } from 'react-native-paper';
 
 interface CreateCourseModalProps {
@@ -16,26 +17,66 @@ export const CreateCourseModal: React.FC<CreateCourseModalProps> = ({
   const theme = useTheme();
   const [name, setName] = useState('');
   const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
+  const [selectedFileUri, setSelectedFileUri] = useState<string | null>(null);
+  const [isPickingFile, setIsPickingFile] = useState(false);
 
-  const handleCreate = () => {
-    onCreate(name, selectedFileName || undefined);
+  const resetForm = () => {
     setName('');
     setSelectedFileName(null);
+    setSelectedFileUri(null);
   };
 
-  // Simulación para seleccionar archivo CSV (usarás expo-document-picker en la implementación real)
-  const handlePickFile = () => {
-    // Aquí iría la lógica de DocumentPicker
-    setSelectedFileName('estudiantes_2024.csv'); 
+  const handleDismiss = () => {
+    resetForm();
+    onDismiss();
+  };
+
+  const handleCreate = () => {
+    onCreate(name.trim(), selectedFileUri || undefined);
+    resetForm();
+  };
+
+  const handlePickFile = async () => {
+    try {
+      setIsPickingFile(true);
+
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ['text/csv', 'text/comma-separated-values', 'application/vnd.ms-excel'],
+        copyToCacheDirectory: true,
+        multiple: false,
+      });
+
+      if (result.canceled) return;
+
+      const file = result.assets?.[0];
+      if (!file) return;
+
+      setSelectedFileName(file.name ?? 'archivo.csv');
+      setSelectedFileUri(file.uri);
+    } catch (error) {
+      console.error('Error seleccionando archivo CSV:', error);
+    } finally {
+      setIsPickingFile(false);
+    }
   };
 
   return (
     <Portal>
-      <Modal visible={visible} onDismiss={onDismiss} contentContainerStyle={[styles.modalContainer, { backgroundColor: theme.colors.surface }]}>
-        <Text variant="titleLarge" style={[styles.title, { color: theme.colors.onSurface }]}>
+      <Modal
+        visible={visible}
+        onDismiss={handleDismiss}
+        contentContainerStyle={[
+          styles.modalContainer,
+          { backgroundColor: theme.colors.surface },
+        ]}
+      >
+        <Text
+          variant="titleLarge"
+          style={[styles.title, { color: theme.colors.onSurface }]}
+        >
           Crear Curso
         </Text>
-        
+
         <TextInput
           mode="outlined"
           label="Nombre (*)"
@@ -45,26 +86,42 @@ export const CreateCourseModal: React.FC<CreateCourseModalProps> = ({
           style={styles.input}
         />
 
-        <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant, marginBottom: 8 }}>
+        <Text
+          variant="bodyMedium"
+          style={{ color: theme.colors.onSurfaceVariant, marginBottom: 8 }}
+        >
           Categoría de Grupo (opc)
         </Text>
 
-        {/* Botón de importación CSV con estilo de borde punteado */}
-        <TouchableOpacity 
-          style={[styles.csvButton, { borderColor: theme.colors.primary, backgroundColor: theme.colors.primaryContainer }]} 
+        <TouchableOpacity
+          style={[
+            styles.csvButton,
+            {
+              borderColor: theme.colors.primary,
+              backgroundColor: theme.colors.primaryContainer,
+            },
+          ]}
           onPress={handlePickFile}
+          disabled={isPickingFile}
         >
           <Icon source="plus" size={20} color={theme.colors.primary} />
           <Text style={[styles.csvButtonText, { color: theme.colors.primary }]}>
-            {selectedFileName ? selectedFileName : 'Importar CSV'}
+            {isPickingFile
+              ? 'Abriendo archivos...'
+              : selectedFileName || 'Importar CSV'}
           </Text>
         </TouchableOpacity>
 
         <View style={styles.buttonRow}>
-          <Button mode="outlined" onPress={onDismiss} style={styles.button}>
+          <Button mode="outlined" onPress={handleDismiss} style={styles.button}>
             Cancelar
           </Button>
-          <Button mode="contained" onPress={handleCreate} style={styles.button} disabled={name.trim().length === 0}>
+          <Button
+            mode="contained"
+            onPress={handleCreate}
+            style={styles.button}
+            disabled={name.trim().length === 0}
+          >
             Crear
           </Button>
         </View>
